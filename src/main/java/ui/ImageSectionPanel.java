@@ -2,6 +2,8 @@ package ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+
 
 public class ImageSectionPanel extends JPanel {
 
@@ -28,7 +30,15 @@ public class ImageSectionPanel extends JPanel {
         buttons.add(download);
 
         // Действия по нажатию
-        upload.addActionListener(e -> JOptionPane.showMessageDialog(this, "Upload clicked"));
+        upload.addActionListener(e -> {
+            BufferedImage img = ImageScaler.InputImage.loadImage(); // <-- вызвать метод
+            if (img != null) {
+                JOptionPane.showMessageDialog(this, "Изображение загружено: " + img.getWidth() + "x" + img.getHeight());
+                // Можешь сохранить его в поле, показать в превью и т.п.
+            } else {
+                JOptionPane.showMessageDialog(this, "Файл не выбран.");
+            }
+        });
         upscale.addActionListener(e -> JOptionPane.showMessageDialog(this, "Upscale clicked"));
         download.addActionListener(e -> JOptionPane.showMessageDialog(this, "Download clicked"));
 
