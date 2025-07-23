@@ -1,11 +1,12 @@
 package ui;
-
+import ImageScaler.OutputImage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-
 public class ImageSectionPanel extends JPanel {
+
+    private BufferedImage currentImage; // поле для сохранения загруженного/обработанного изображения
 
     public ImageSectionPanel() {
         setLayout(new BorderLayout());
@@ -29,18 +30,25 @@ public class ImageSectionPanel extends JPanel {
         buttons.add(upscale);
         buttons.add(download);
 
-        // Действия по нажатию
         upload.addActionListener(e -> {
-            BufferedImage img = ImageScaler.InputImage.loadImage(); // <-- вызвать метод
+            BufferedImage img = ImageScaler.InputImage.loadImage();
             if (img != null) {
+                currentImage = img; // сохраняем загруженное изображение
                 JOptionPane.showMessageDialog(this, "Изображение загружено: " + img.getWidth() + "x" + img.getHeight());
-                // Можешь сохранить его в поле, показать в превью и т.п.
             } else {
                 JOptionPane.showMessageDialog(this, "Файл не выбран.");
             }
         });
+
         upscale.addActionListener(e -> JOptionPane.showMessageDialog(this, "Upscale clicked"));
-        download.addActionListener(e -> JOptionPane.showMessageDialog(this, "Download clicked"));
+
+        download.addActionListener(e -> {
+            if (currentImage != null) {
+                OutputImage.saveImage(currentImage); // вызываем метод сохранения
+            } else {
+                JOptionPane.showMessageDialog(this, "Нет изображения для сохранения.");
+            }
+        });
 
         JPanel center = new JPanel();
         center.setOpaque(false);
@@ -55,15 +63,15 @@ public class ImageSectionPanel extends JPanel {
 
     private JButton createMainButton(String text) {
         JButton btn = new JButton(text.toUpperCase());
-        btn.setBackground(new Color(35, 39, 47)); // фон
-        btn.setForeground(Color.WHITE);          // текст
-        btn.setOpaque(true);                     // включить отрисовку фона
+        btn.setBackground(new Color(35, 39, 47));
+        btn.setForeground(Color.WHITE);
+        btn.setOpaque(true);
         btn.setContentAreaFilled(true);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setFont(new Font("Dialog", Font.BOLD, 12));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20)); // внутренние отступы
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         return btn;
     }
 }
