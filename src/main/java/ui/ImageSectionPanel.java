@@ -1,12 +1,17 @@
 package ui;
+
+import ImageScaler.InputImage;
 import ImageScaler.OutputImage;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ImageSectionPanel extends JPanel {
 
-    private BufferedImage currentImage; // поле для сохранения загруженного/обработанного изображения
+    private BufferedImage currentImage;
+    private JLabel imageLabel = new JLabel();
+    private JPanel preview;
 
     public ImageSectionPanel() {
         setLayout(new BorderLayout());
@@ -16,10 +21,11 @@ public class ImageSectionPanel extends JPanel {
         title.setFont(new Font("Dialog", Font.BOLD, 18));
         title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        JPanel preview = new JPanel();
+        preview = new JPanel();
         preview.setPreferredSize(new Dimension(420, 180));
         preview.setBackground(Color.LIGHT_GRAY);
-        preview.add(new JLabel("Image Preview"));
+        preview.setLayout(new BorderLayout());
+        preview.add(imageLabel, BorderLayout.CENTER);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 16));
         JButton upload = createMainButton("Upload");
@@ -31,10 +37,35 @@ public class ImageSectionPanel extends JPanel {
         buttons.add(download);
 
         upload.addActionListener(e -> {
-            BufferedImage img = ImageScaler.InputImage.loadImage();
+            BufferedImage img = InputImage.loadImage();
             if (img != null) {
-                currentImage = img; // сохраняем загруженное изображение
-                JOptionPane.showMessageDialog(this, "Изображение загружено: " + img.getWidth() + "x" + img.getHeight());
+                currentImage = img;
+
+                // Получаем текущие размеры панели
+                int panelWidth = preview.getWidth();
+                int panelHeight = preview.getHeight();
+
+                // Если ещё не отрисовано, берём preferredSize
+                if (panelWidth == 0 || panelHeight == 0) {
+                    panelWidth = preview.getPreferredSize().width;
+                    panelHeight = preview.getPreferredSize().height;
+                }
+
+                // Масштабируем изображение пропорционально
+                double scale = Math.min(
+                        (double) panelWidth / img.getWidth(),
+                        (double) panelHeight / img.getHeight()
+                );
+                int newW = (int) (img.getWidth() * scale);
+                int newH = (int) (img.getHeight() * scale);
+
+                Image scaled = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+                imageLabel.setIcon(new ImageIcon(scaled));
+                imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+                revalidate();
+                repaint();
             } else {
                 JOptionPane.showMessageDialog(this, "Файл не выбран.");
             }
@@ -44,7 +75,7 @@ public class ImageSectionPanel extends JPanel {
 
         download.addActionListener(e -> {
             if (currentImage != null) {
-                OutputImage.saveImage(currentImage); // вызываем метод сохранения
+                OutputImage.saveImage(currentImage);
             } else {
                 JOptionPane.showMessageDialog(this, "Нет изображения для сохранения.");
             }
