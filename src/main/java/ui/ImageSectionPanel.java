@@ -1,6 +1,7 @@
 package ui;
 
-import  ImageScaler.InputImage;
+import ImageScaler.ImageUpscaler;
+import ImageScaler.InputImage;
 import ImageScaler.OutputImage;
 
 import javax.imageio.ImageIO;
@@ -8,8 +9,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 
-import ImageScaler.ImageUpscaler;
 public class ImageSectionPanel extends JPanel {
 
     private BufferedImage currentImage;
@@ -86,10 +87,10 @@ public class ImageSectionPanel extends JPanel {
                 ImageIO.write(currentImage, "png", inputTemp);
 
                 // Запускаем апскейлинг
-                ImageUpscaler.upscale(inputTemp.getAbsolutePath());
+                ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), "image_temp_output.png");
 
-                // Загружаем результат (модель создаёт файл _upscaled.png)
-                File outputFile = new File("image_temp_input_upscaled.png");
+                // Загружаем результат
+                File outputFile = new File("image_temp_output.png");
                 BufferedImage resultImage = ImageIO.read(outputFile);
 
                 // Обновляем текущую картинку
@@ -118,11 +119,12 @@ public class ImageSectionPanel extends JPanel {
                 repaint();
 
                 JOptionPane.showMessageDialog(this, "✅ Апскейлинг завершен!");
-            } catch (Exception ex) {
+            } catch (IOException | InterruptedException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "❌ Ошибка при апскейлинге: " + ex.getMessage());
             }
         });
+
         download.addActionListener(e -> {
             if (currentImage != null) {
                 OutputImage.saveImage(currentImage);
