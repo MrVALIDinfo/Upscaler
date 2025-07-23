@@ -1,12 +1,15 @@
 package ui;
 
-import ImageScaler.InputImage;
+import  ImageScaler.InputImage;
 import ImageScaler.OutputImage;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 
+import ImageScaler.ImageUpscaler;
 public class ImageSectionPanel extends JPanel {
 
     private BufferedImage currentImage;
@@ -71,8 +74,55 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        upscale.addActionListener(e -> JOptionPane.showMessageDialog(this, "Upscale clicked"));
+        upscale.addActionListener(e -> {
+            if (currentImage == null) {
+                JOptionPane.showMessageDialog(this, "Сначала загрузите изображение.");
+                return;
+            }
 
+            try {
+                // Сохраняем текущее изображение во временный файл
+                File inputTemp = new File("image_temp_input.png");
+                ImageIO.write(currentImage, "png", inputTemp);
+
+                // Запускаем апскейлинг
+                ImageUpscaler.upscale(inputTemp.getAbsolutePath());
+
+                // Загружаем результат (модель создаёт файл _upscaled.png)
+                File outputFile = new File("image_temp_input_upscaled.png");
+                BufferedImage resultImage = ImageIO.read(outputFile);
+
+                // Обновляем текущую картинку
+                currentImage = resultImage;
+
+                // Отображаем в интерфейсе
+                int panelWidth = preview.getWidth();
+                int panelHeight = preview.getHeight();
+
+                if (panelWidth == 0 || panelHeight == 0) {
+                    panelWidth = preview.getPreferredSize().width;
+                    panelHeight = preview.getPreferredSize().height;
+                }
+
+                double scale = Math.min(
+                        (double) panelWidth / resultImage.getWidth(),
+                        (double) panelHeight / resultImage.getHeight()
+                );
+                int newW = (int) (resultImage.getWidth() * scale);
+                int newH = (int) (resultImage.getHeight() * scale);
+
+                Image scaled = resultImage.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+                imageLabel.setIcon(new ImageIcon(scaled));
+
+                revalidate();
+                repaint();
+
+                JOptionPane.showMessageDialog(this, "✅ Апскейлинг завершен!");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "❌ Ошибка при апскейлинге: " + ex.getMessage());
+            }
+        });
         download.addActionListener(e -> {
             if (currentImage != null) {
                 OutputImage.saveImage(currentImage);
