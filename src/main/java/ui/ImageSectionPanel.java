@@ -17,7 +17,6 @@ public class ImageSectionPanel extends JPanel {
     private JLabel imageLabel = new JLabel();
     private JScrollPane previewScroll;
     private double zoom = 1.0;
-    private final JComboBox<String> modelBox;
     private final JProgressBar progressBar;
 
     private static final int PREVIEW_W = 800;
@@ -40,17 +39,6 @@ public class ImageSectionPanel extends JPanel {
         previewScroll.setBorder(BorderFactory.createLineBorder(new Color(60, 63, 65)));
         previewScroll.getViewport().setBackground(new Color(30, 33, 36));
 
-        modelBox = new JComboBox<>(new String[]{
-                "realesrgan-x4plus",
-                "realesrgan-x4plus-anime",
-                "realesr-animevideov3"
-        });
-        modelBox.setMaximumSize(new Dimension(200, 30));
-        modelBox.setBackground(new Color(60, 63, 65));
-        modelBox.setForeground(Color.WHITE);
-        modelBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        modelBox.setFocusable(false);
-
         progressBar = new JProgressBar();
         progressBar.setIndeterminate(false);
         progressBar.setStringPainted(true);
@@ -60,11 +48,10 @@ public class ImageSectionPanel extends JPanel {
 
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         topBar.setBackground(getBackground());
-        topBar.add(modelBox);
         topBar.add(progressBar);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 14));
-        buttons.setBackground(new Color(40, 44, 52));
+        buttons.setBackground(getBackground());
 
         JButton upload = createMainButton("Open");
         JButton upscale = createMainButton("Upscale");
@@ -95,30 +82,36 @@ public class ImageSectionPanel extends JPanel {
                 return;
             }
 
-            final String model = (String) modelBox.getSelectedItem();
+            // Открываем диалог выбора
+            Panel4imageScaler dialog = new Panel4imageScaler((Frame) SwingUtilities.getWindowAncestor(this));
+            dialog.setVisible(true);
+
+            String scale = dialog.getSelectedScale();
+            String model = dialog.getSelectedModel();
+
+            if (scale == null || model == null) return;
 
             progressBar.setVisible(true);
             progressBar.setIndeterminate(true);
             progressBar.setString("Upscaling...");
+
             setButtonsEnabled(buttons, false);
 
             new SwingWorker<BufferedImage, Void>() {
                 @Override
                 protected BufferedImage doInBackground() throws Exception {
                     String path = "src/main/java/Models/AI/REALESRGAN/";
-                    File inputTemp = new File(path + "image_temp_input.png");
-                    File outputFile = new File(path + "image_temp_output.png");
+                    File input = new File(path + "image_temp_input.png");
+                    File output = new File(path + "image_temp_output.png");
 
-                    ImageIO.write(currentImage, "png", inputTemp);
-                    ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), outputFile.getAbsolutePath(), model);
+                    ImageIO.write(currentImage, "png", input);
+                    ImageUpscaler.upscaleImage(input.getAbsolutePath(), output.getAbsolutePath(), model);
 
-                    if (!outputFile.exists())
-                        throw new IOException("Output file not found: " + outputFile.getAbsolutePath());
+                    if (!output.exists()) throw new IOException("Output file missing: " + output.getAbsolutePath());
 
-                    BufferedImage result = ImageIO.read(outputFile);
-                    inputTemp.delete();
-                    outputFile.delete();
-
+                    BufferedImage result = ImageIO.read(output);
+                    input.delete();
+                    output.delete();
                     return result;
                 }
 
@@ -129,11 +122,11 @@ public class ImageSectionPanel extends JPanel {
                         zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
                         showPreview();
                         JOptionPane.showMessageDialog(ImageSectionPanel.this,
-                                "✅ Upscale done with model: " + model);
+                                "✅ Upscaled with model: " + model + ", scale: " + scale + "x");
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         JOptionPane.showMessageDialog(ImageSectionPanel.this,
-                                "❌ Upscale failed:\n" + ex.getMessage());
+                                "❌ Error: " + ex.getMessage());
                     } finally {
                         progressBar.setVisible(false);
                         progressBar.setIndeterminate(false);
@@ -203,7 +196,7 @@ public class ImageSectionPanel extends JPanel {
 
     private void setButtonsEnabled(JPanel panel, boolean enabled) {
         for (Component comp : panel.getComponents()) {
-            if (comp instanceof JButton) comp.setEnabled(enabled);
+            if (comp instanceof JButton b) b.setEnabled(enabled);
         }
     }
 
