@@ -37,9 +37,7 @@ public class Panel4imageScaler extends JDialog {
 
         modelBox = new JComboBox<>(new String[]{
                 "realesrgan-x4plus",
-                "realesrgan-x4plus-anime",
-                "realesr-animevideov3",
-                "realesrnet-x4plus"
+                "realesrgan-x4plus-anime"
         });
         modelBox.setFont(new Font("SansSerif", Font.PLAIN, 14));
         modelBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));

@@ -20,7 +20,7 @@ public class ImageSectionPanel extends JPanel {
     private final JProgressBar progressBar;
 
     private static final int PREVIEW_W = 800;
-    private static final int PREVIEW_H = 400;
+    private static final int PREVIEW_H = 600;
 
     public ImageSectionPanel() {
         setLayout(new BorderLayout());
@@ -44,11 +44,13 @@ public class ImageSectionPanel extends JPanel {
         progressBar.setStringPainted(true);
         progressBar.setVisible(false);
         progressBar.setForeground(new Color(100, 200, 100));
-        progressBar.setPreferredSize(new Dimension(200, 20));
+        progressBar.setPreferredSize(new Dimension(500, 22));
+        progressBar.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        topBar.setBackground(getBackground());
-        topBar.add(progressBar);
+        JPanel progressPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        progressPanel.setBackground(getBackground());
+        progressPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.DARK_GRAY));
+        progressPanel.add(progressBar);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 14));
         buttons.setBackground(getBackground());
@@ -184,8 +186,8 @@ public class ImageSectionPanel extends JPanel {
         page.add(center, BorderLayout.CENTER);
         page.add(buttons, BorderLayout.SOUTH);
 
-        add(topBar, BorderLayout.NORTH);
         add(page, BorderLayout.CENTER);
+        add(progressPanel, BorderLayout.SOUTH);
     }
 
     private void showPreview() {
