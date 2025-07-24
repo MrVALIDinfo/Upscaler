@@ -10,7 +10,6 @@ public class OutputImage {
 
     public static void saveImage(BufferedImage image) {
         try {
-            // Указываем дефолтную нормальную директорию
             JFileChooser fileChooser = new JFileChooser(new File(System.getProperty("user.home") + "/Pictures"));
             fileChooser.setDialogTitle("Сохранить изображение как...");
             fileChooser.setSelectedFile(new File("upscaled_image.png"));
@@ -26,8 +25,7 @@ public class OutputImage {
                     fileToSave = new File(filePath);
                 }
 
-                // PRO: проверим существует ли нормальный путь
-                File parent = fileToSave.getCanonicalFile().getParentFile();  // ← ⚠️ canonical реально убирает ::GUID
+                File parent = fileToSave.getCanonicalFile().getParentFile();
                 if (parent == null || !parent.exists() || !parent.canWrite()) {
                     throw new IOException("❌ Папка недоступна для записи: " + parent);
                 }

@@ -82,7 +82,6 @@ public class ImageSectionPanel extends JPanel {
                 return;
             }
 
-            // Открываем диалог выбора
             Panel4imageScaler dialog = new Panel4imageScaler((Frame) SwingUtilities.getWindowAncestor(this));
             dialog.setVisible(true);
 
@@ -100,9 +99,14 @@ public class ImageSectionPanel extends JPanel {
             new SwingWorker<BufferedImage, Void>() {
                 @Override
                 protected BufferedImage doInBackground() throws Exception {
-                    String path = "src/main/java/Models/AI/REALESRGAN/";
-                    File input = new File(path + "image_temp_input.png");
-                    File output = new File(path + "image_temp_output.png");
+                    // Creating temp directory for temp upscaled files
+                    File tempDir = new File("temp_upscale");
+                    if (!tempDir.exists()) tempDir.mkdirs();
+
+                    // Уникальные имена файлов (чтобы не было конфликтов)
+                    String unique = String.valueOf(System.currentTimeMillis());
+                    File input = new File(tempDir, "input_" + unique + ".png");
+                    File output = new File(tempDir, "output_" + unique + ".png");
 
                     ImageIO.write(currentImage, "png", input);
                     ImageUpscaler.upscaleImage(input.getAbsolutePath(), output.getAbsolutePath(), model);
@@ -110,8 +114,11 @@ public class ImageSectionPanel extends JPanel {
                     if (!output.exists()) throw new IOException("Output file missing: " + output.getAbsolutePath());
 
                     BufferedImage result = ImageIO.read(output);
+
+                    // Удаляем временные файлы
                     input.delete();
                     output.delete();
+
                     return result;
                 }
 
