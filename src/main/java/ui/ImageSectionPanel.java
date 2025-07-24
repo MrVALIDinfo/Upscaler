@@ -17,13 +17,15 @@ public class ImageSectionPanel extends JPanel {
     private JLabel imageLabel = new JLabel();
     private JScrollPane previewScroll;
     private double zoom = 1.0;
+    private final JComboBox<String> modelBox;
+    private final JProgressBar progressBar;
 
     private static final int PREVIEW_W = 800;
     private static final int PREVIEW_H = 400;
 
     public ImageSectionPanel() {
         setLayout(new BorderLayout());
-        setBackground(new Color(40, 44, 52)); // фон FlatLaf
+        setBackground(new Color(40, 44, 52));
 
         JLabel title = new JLabel("Upscale Image", SwingConstants.CENTER);
         title.setFont(new Font("SansSerif", Font.BOLD, 22));
@@ -37,6 +39,29 @@ public class ImageSectionPanel extends JPanel {
         previewScroll.setPreferredSize(new Dimension(PREVIEW_W, PREVIEW_H));
         previewScroll.setBorder(BorderFactory.createLineBorder(new Color(60, 63, 65)));
         previewScroll.getViewport().setBackground(new Color(30, 33, 36));
+
+        modelBox = new JComboBox<>(new String[]{
+                "realesrgan-x4plus",
+                "realesrgan-x4plus-anime",
+                "realesr-animevideov3"
+        });
+        modelBox.setMaximumSize(new Dimension(200, 30));
+        modelBox.setBackground(new Color(60, 63, 65));
+        modelBox.setForeground(Color.WHITE);
+        modelBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        modelBox.setFocusable(false);
+
+        progressBar = new JProgressBar();
+        progressBar.setIndeterminate(false);
+        progressBar.setStringPainted(true);
+        progressBar.setVisible(false);
+        progressBar.setForeground(new Color(100, 200, 100));
+        progressBar.setPreferredSize(new Dimension(200, 20));
+
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        topBar.setBackground(getBackground());
+        topBar.add(modelBox);
+        topBar.add(progressBar);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 14));
         buttons.setBackground(new Color(40, 44, 52));
@@ -70,38 +95,52 @@ public class ImageSectionPanel extends JPanel {
                 return;
             }
 
-            Panel4imageScaler dialog = new Panel4imageScaler((Frame) SwingUtilities.getWindowAncestor(this));
-            dialog.setVisible(true);
-            String scaleOption = dialog.getSelectedScale();
+            final String model = (String) modelBox.getSelectedItem();
 
-            if (scaleOption == null) return;
+            progressBar.setVisible(true);
+            progressBar.setIndeterminate(true);
+            progressBar.setString("Upscaling...");
+            setButtonsEnabled(buttons, false);
 
-            try {
-                String basePath = "src/main/java/Models/AI/REALESRGAN/";
-                File inputTemp = new File(basePath + "image_temp_input.png");
-                File outputFile = new File(basePath + "image_temp_output.png");
+            new SwingWorker<BufferedImage, Void>() {
+                @Override
+                protected BufferedImage doInBackground() throws Exception {
+                    String path = "src/main/java/Models/AI/REALESRGAN/";
+                    File inputTemp = new File(path + "image_temp_input.png");
+                    File outputFile = new File(path + "image_temp_output.png");
 
-                ImageIO.write(currentImage, "png", inputTemp);
-                ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), outputFile.getAbsolutePath());
+                    ImageIO.write(currentImage, "png", inputTemp);
+                    ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), outputFile.getAbsolutePath(), model);
 
-                if (!outputFile.exists())
-                    throw new IOException("Output file not found at: " + outputFile.getAbsolutePath());
+                    if (!outputFile.exists())
+                        throw new IOException("Output file not found: " + outputFile.getAbsolutePath());
 
-                BufferedImage resultImage = ImageIO.read(outputFile);
-                currentImage = resultImage;
-                zoom = getInitialZoom(resultImage.getWidth(), resultImage.getHeight());
-                showPreview();
+                    BufferedImage result = ImageIO.read(outputFile);
+                    inputTemp.delete();
+                    outputFile.delete();
 
-                JOptionPane.showMessageDialog(this, "✅ Upscaled x" + scaleOption);
+                    return result;
+                }
 
-                // 👌 Удаляем временные файлы
-                inputTemp.delete();
-                outputFile.delete();
-
-            } catch (IOException | InterruptedException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "❌ Error: " + ex.getMessage());
-            }
+                @Override
+                protected void done() {
+                    try {
+                        currentImage = get();
+                        zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
+                        showPreview();
+                        JOptionPane.showMessageDialog(ImageSectionPanel.this,
+                                "✅ Upscale done with model: " + model);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(ImageSectionPanel.this,
+                                "❌ Upscale failed:\n" + ex.getMessage());
+                    } finally {
+                        progressBar.setVisible(false);
+                        progressBar.setIndeterminate(false);
+                        setButtonsEnabled(buttons, true);
+                    }
+                }
+            }.execute();
         });
 
         save.addActionListener(e -> {
@@ -128,27 +167,27 @@ public class ImageSectionPanel extends JPanel {
 
         previewScroll.addMouseWheelListener(e -> {
             if (currentImage != null && e.isControlDown()) {
-                if (e.getWheelRotation() < 0)
-                    zoom = Math.min(zoom * 1.1, 8.0);
-                else
-                    zoom = Math.max(zoom / 1.1, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
+                zoom = (e.getWheelRotation() < 0)
+                        ? Math.min(zoom * 1.1, 8.0)
+                        : Math.max(zoom / 1.1, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
                 showPreview();
             }
         });
 
-        JPanel centerPart = new JPanel();
-        centerPart.setOpaque(false);
-        centerPart.setLayout(new BoxLayout(centerPart, BoxLayout.Y_AXIS));
-        centerPart.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        centerPart.add(title);
-        centerPart.add(Box.createVerticalStrut(10));
-        centerPart.add(previewScroll);
+        JPanel center = new JPanel();
+        center.setOpaque(false);
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        center.add(title);
+        center.add(Box.createVerticalStrut(10));
+        center.add(previewScroll);
 
         JPanel page = new JPanel(new BorderLayout());
         page.setOpaque(false);
-        page.add(centerPart, BorderLayout.CENTER);
-        page.add(buttons, BorderLayout.SOUTH); // 👉 кнопки прижаты к низу
+        page.add(center, BorderLayout.CENTER);
+        page.add(buttons, BorderLayout.SOUTH);
 
+        add(topBar, BorderLayout.NORTH);
         add(page, BorderLayout.CENTER);
     }
 
@@ -160,6 +199,12 @@ public class ImageSectionPanel extends JPanel {
         imageLabel.setIcon(new ImageIcon(scaled));
         imageLabel.setPreferredSize(new Dimension(w, h));
         imageLabel.revalidate();
+    }
+
+    private void setButtonsEnabled(JPanel panel, boolean enabled) {
+        for (Component comp : panel.getComponents()) {
+            if (comp instanceof JButton) comp.setEnabled(enabled);
+        }
     }
 
     private Image getHighQualityScaledImage(BufferedImage src, int w, int h) {
@@ -177,7 +222,7 @@ public class ImageSectionPanel extends JPanel {
     private double getInitialZoom(int imgW, int imgH) {
         double maxW = PREVIEW_W, maxH = PREVIEW_H;
         double scale = Math.min(maxW / imgW, maxH / imgH);
-        return scale < 1.0 ? scale : 1.0;
+        return Math.min(scale, 1.0);
     }
 
     private JButton createMainButton(String text) {

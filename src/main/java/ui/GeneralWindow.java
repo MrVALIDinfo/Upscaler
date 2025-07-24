@@ -9,16 +9,16 @@ public class GeneralWindow extends JFrame {
 
     public GeneralWindow() {
         try {
-            UIManager.setLookAndFeel(new FlatDarkLaf()); // тёмная тема
+            UIManager.setLookAndFeel(new FlatDarkLaf());
         } catch (Exception e) {
-            System.err.println("Не удалось применить тему FlatLaf :(");
+            System.err.println("Не удалось применить тему FlatLaf");
         }
 
         setTitle("Upscaler");
-        setMinimumSize(new Dimension(960, 620));
+        setMinimumSize(new Dimension(980, 620));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setResizable(true); // ✅ теперь окно можно масштабировать
+        setResizable(true);
 
         setLayout(new BorderLayout());
 
