@@ -1,46 +1,58 @@
 package ImageScaler;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.File;
+import java.io.*;
 
 public class ImageUpscaler {
 
     public static void upscaleImage(String inputImagePath, String outputImagePath) throws IOException, InterruptedException {
-        // Путь к .exe
-        String executablePath = "C:\\Users\\acer\\IdeaProjects\\Upscaler\\src\\main\\java\\Models\\AI\\REALESRGAN\\realesrgan-ncnn-vulkan.exe";
+        String os = System.getProperty("os.name").toLowerCase();
+        String executablePath;
 
-        // Формируем правильную команду, разбив на части
+        if (os.contains("win")) {
+            executablePath = "src/main/java/Models/AI/REALESRGAN/realesrgan-ncnn-vulkan.exe";
+        } else if (os.contains("mac")) {
+            executablePath = "src/main/java/Models/AI/REALESRGAN/realesrgan-ncnn-vulkan";
+        } else {
+            throw new UnsupportedOperationException("❌ Неподдерживаемая ОС: " + os);
+        }
+
+        File execFile = new File(executablePath);
+        if (!execFile.exists()) {
+            throw new FileNotFoundException("❌ Не найден файл модели (бинарник): " + executablePath);
+        }
+
+        if (!execFile.canExecute()) {
+            System.out.println("⚠️ Выдаю права на запуск: " + execFile.getAbsolutePath());
+            execFile.setExecutable(true); // даст права на выполнение, если возможно
+        }
+
         ProcessBuilder builder = new ProcessBuilder(
-                executablePath,
+                execFile.getAbsolutePath(),
                 "-i", inputImagePath,
                 "-o", outputImagePath,
-                "-n", "realesrgan-x4plus" // безопасная универсальная модель
+                "-n", "realesrgan-x4plus"
         );
 
-        // Указываем рабочую директорию процесса (там .exe и .dll)
-        builder.directory(new File("C:\\Users\\acer\\IdeaProjects\\Upscaler\\src\\main\\java\\Models\\AI\\REALESRGAN"));
-
-        // Объединяем stdout + stderr в один поток
+        // рабочая директория (там модели, .dll и т.п.)
+        builder.directory(new File("src/main/java/Models/AI/REALESRGAN"));
         builder.redirectErrorStream(true);
+
+        System.out.println("▶️ Запуск: " + String.join(" ", builder.command()));
 
         Process process = builder.start();
 
-        // Читаем и выводим логи процесса
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+                System.out.println("[RealESRGAN] " + line);
             }
         }
 
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            throw new RuntimeException("RealESRGAN process exited with code " + exitCode);
+            throw new RuntimeException("❌ Процесс RealESRGAN завершился с кодом: " + exitCode);
         }
 
-        System.out.println("🎉 Готово! Изображение успешно апскейлено.");
+        System.out.println("✅ Апскейлинг завершён успешно.");
     }
-
 }
