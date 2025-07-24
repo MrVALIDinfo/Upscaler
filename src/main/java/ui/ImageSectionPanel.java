@@ -18,7 +18,6 @@ public class ImageSectionPanel extends JPanel {
     private JScrollPane previewScroll;
     private double zoom = 1.0;
 
-    // Размер предпросмотра увеличен в 2 раза
     private static final int PREVIEW_W = 840;
     private static final int PREVIEW_H = 360;
 
@@ -30,7 +29,6 @@ public class ImageSectionPanel extends JPanel {
         title.setFont(new Font("Dialog", Font.BOLD, 18));
         title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        // === Preview box ===
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
 
@@ -39,7 +37,6 @@ public class ImageSectionPanel extends JPanel {
         previewScroll.getViewport().setBackground(Color.LIGHT_GRAY);
         previewScroll.setBorder(BorderFactory.createEmptyBorder());
 
-        // === Кнопки операций ===
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 16));
         JButton upload = createMainButton("Upload");
         JButton upscale = createMainButton("Upscale");
@@ -53,7 +50,6 @@ public class ImageSectionPanel extends JPanel {
         buttons.add(zoomIn);
         buttons.add(zoomOut);
 
-        // === Upload logic ===
         upload.addActionListener(e -> {
             BufferedImage img = InputImage.loadImage();
             if (img != null) {
@@ -65,7 +61,6 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        // === Upscale logic ===
         upscale.addActionListener(e -> {
             if (currentImage == null) {
                 JOptionPane.showMessageDialog(this, "Сначала загрузите изображение.");
@@ -81,12 +76,27 @@ public class ImageSectionPanel extends JPanel {
             }
 
             try {
-                File inputTemp = new File("image_temp_input.png");
+                // Путь в ту же папку, где и RealESRGAN.exe
+                String basePath = "src/main/java/Models/AI/REALESRGAN/";
+                File inputTemp = new File(basePath + "image_temp_input.png");
+                File outputFile = new File(basePath + "image_temp_output.png");
+
+                // Сохраняем картинку во временный файл
                 ImageIO.write(currentImage, "png", inputTemp);
 
-                ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), "image_temp_output.png");
+                // Апскейлим
+                ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), outputFile.getAbsolutePath());
 
-                File outputFile = new File("image_temp_output.png");
+                // Проверка перед чтением
+                System.out.println("[DEBUG] Output path: " + outputFile.getAbsolutePath());
+                System.out.println("[DEBUG] Exists: " + outputFile.exists());
+                System.out.println("[DEBUG] Size: " + outputFile.length() + " bytes");
+
+                if (!outputFile.exists()) {
+                    throw new IOException("Файл upscale-результата не найден: " + outputFile.getAbsolutePath());
+                }
+
+                // Читаем upscale изображение
                 BufferedImage resultImage = ImageIO.read(outputFile);
 
                 currentImage = resultImage;
@@ -94,13 +104,13 @@ public class ImageSectionPanel extends JPanel {
                 showPreview();
 
                 JOptionPane.showMessageDialog(this, "✅ Апскейлинг завершен! (" + scaleOption + ")");
+
             } catch (IOException | InterruptedException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "❌ Ошибка при апскейлинге: " + ex.getMessage());
             }
         });
 
-        // === Download/save logic ===
         download.addActionListener(e -> {
             if (currentImage != null) {
                 OutputImage.saveImage(currentImage);
@@ -109,7 +119,6 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        // === Zoom logic ===
         zoomIn.addActionListener(e -> {
             if (currentImage != null) {
                 zoom = Math.min(zoom * 1.25, 8.0);
@@ -124,7 +133,6 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        // === Mouse wheel zoom ===
         previewScroll.addMouseWheelListener(e -> {
             if (currentImage != null && e.isControlDown()) {
                 if (e.getWheelRotation() < 0) {
@@ -136,7 +144,6 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        // === Центрическая компоновка ===
         JPanel center = new JPanel();
         center.setOpaque(false);
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
@@ -158,7 +165,6 @@ public class ImageSectionPanel extends JPanel {
         imageLabel.revalidate();
     }
 
-    //масштабирование
     private Image getHighQualityScaledImage(BufferedImage src, int w, int h) {
         if (w <= 0 || h <= 0) return src;
         BufferedImage resized = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
