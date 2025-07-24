@@ -99,11 +99,9 @@ public class ImageSectionPanel extends JPanel {
             new SwingWorker<BufferedImage, Void>() {
                 @Override
                 protected BufferedImage doInBackground() throws Exception {
-                    // Creating temp directory for temp upscaled files
-                    File tempDir = new File("temp_upscale");
+                    File tempDir = new File("src/main/java/Models/AI/REALESRGAN/temp_upscale");
                     if (!tempDir.exists()) tempDir.mkdirs();
 
-                    // Уникальные имена файлов (чтобы не было конфликтов)
                     String unique = String.valueOf(System.currentTimeMillis());
                     File input = new File(tempDir, "input_" + unique + ".png");
                     File output = new File(tempDir, "output_" + unique + ".png");
@@ -115,7 +113,6 @@ public class ImageSectionPanel extends JPanel {
 
                     BufferedImage result = ImageIO.read(output);
 
-                    // Удаляем временные файлы
                     input.delete();
                     output.delete();
 

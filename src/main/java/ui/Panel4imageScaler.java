@@ -12,13 +12,12 @@ public class Panel4imageScaler extends JDialog {
     private final JButton submitButton;
     private final JButton cancelButton;
 
-    private String selectedScale = "4"; // по умолчанию
+    private String selectedScale = "4";
     private String selectedModel = "realesrgan-x4plus";
 
     public Panel4imageScaler(Frame parent) {
         super(parent, "Upscale Settings", true);
-
-        setUndecorated(false);
+        setUndecorated(true);
         setSize(380, 280);
         setLocationRelativeTo(parent);
         setResizable(false);
@@ -29,7 +28,6 @@ public class Panel4imageScaler extends JDialog {
         mainPanel.setBackground(new Color(40, 44, 52));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Заголовок
         JLabel title = new JLabel("Upscale Settings");
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
         title.setForeground(Color.WHITE);
@@ -37,7 +35,6 @@ public class Panel4imageScaler extends JDialog {
         mainPanel.add(title);
         mainPanel.add(Box.createVerticalStrut(20));
 
-        // Модель (Model ComboBox)
         modelBox = new JComboBox<>(new String[]{
                 "realesrgan-x4plus",
                 "realesrgan-x4plus-anime",
@@ -61,7 +58,6 @@ public class Panel4imageScaler extends JDialog {
         mainPanel.add(modelBox);
         mainPanel.add(Box.createVerticalStrut(15));
 
-        // Масштаб (Radio)
         JLabel scaleLabel = new JLabel("Scale:");
         scaleLabel.setForeground(Color.WHITE);
         scaleLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -70,7 +66,6 @@ public class Panel4imageScaler extends JDialog {
         scale2x = createRadio("2x");
         scale4x = createRadio("4x");
         scale8x = createRadio("8x");
-
         scale4x.setSelected(true);
 
         ButtonGroup group = new ButtonGroup();
@@ -85,7 +80,6 @@ public class Panel4imageScaler extends JDialog {
         mainPanel.add(scale8x);
         mainPanel.add(Box.createVerticalStrut(25));
 
-        // Кнопки
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonPanel.setBackground(mainPanel.getBackground());
 
@@ -99,12 +93,10 @@ public class Panel4imageScaler extends JDialog {
 
         setContentPane(mainPanel);
 
-        // Обработчики
         submitButton.addActionListener(e -> {
             if (scale2x.isSelected()) selectedScale = "2";
             else if (scale4x.isSelected()) selectedScale = "4";
             else if (scale8x.isSelected()) selectedScale = "8";
-
             selectedModel = (String) modelBox.getSelectedItem();
             setVisible(false);
         });
@@ -115,8 +107,6 @@ public class Panel4imageScaler extends JDialog {
             setVisible(false);
         });
     }
-
-    // ===== Buttons & UI Components =====
 
     private JRadioButton createRadio(String label) {
         JRadioButton btn = new JRadioButton(label);
@@ -139,8 +129,6 @@ public class Panel4imageScaler extends JDialog {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
-
-    // ======= Доступ к выбранным значениям =======
 
     public String getSelectedScale() {
         return selectedScale;

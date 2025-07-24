@@ -47,4 +47,12 @@ public class GeneralWindow extends JFrame {
 
         setVisible(true);
     }
+
+    public void lockWindow() {
+        setEnabled(false);
+    }
+
+    public void unlockWindow() {
+        setEnabled(true);
+    }
 }
