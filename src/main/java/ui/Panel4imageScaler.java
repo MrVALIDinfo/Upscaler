@@ -10,83 +10,70 @@ public class Panel4imageScaler extends JDialog {
     private final JRadioButton scale8x;
     private final JButton submitButton;
     private final JButton cancelButton;
-    private final ButtonGroup scaleGroup;
+    private final String selectedDefault = "4x"; // по умолчанию
     private String selectedScale = null;
 
     public Panel4imageScaler(Frame parent) {
         super(parent, "Select Upscale Quality", true);
-        setUndecorated(true);
-        setSize(350, 300);
+
+        // === Настройки окна
+        setUndecorated(false);
+        setSize(320, 260);
         setLocationRelativeTo(parent);
+        setResizable(false);
 
-        JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(BorderFactory.createTitledBorder("Select Upscale Quality"));
-        mainPanel.setBackground(new Color(245, 245, 245));
+        // === Основная панель
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(new Color(40, 44, 52));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 15, 10, 15);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.gridx = 0;
-        gbc.gridy = 0;
+        JLabel title = new JLabel("Select Upscale Factor");
+        title.setFont(new Font("SansSerif", Font.BOLD, 18));
+        title.setForeground(Color.WHITE);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        scale2x = new JRadioButton("2x Quality");
-        scale4x = new JRadioButton("4x Quality");
-        scale8x = new JRadioButton("8x Quality");
-        scale2x.setSelected(true);
+        mainPanel.add(title);
+        mainPanel.add(Box.createVerticalStrut(20));
 
-        scale2x.setBackground(new Color(245, 245, 245));
-        scale4x.setBackground(new Color(245, 245, 245));
-        scale8x.setBackground(new Color(245, 245, 245));
-        scale2x.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        scale4x.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        scale8x.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        // Radio buttons
+        scale2x = createRadio("2x Quality");
+        scale4x = createRadio("4x Quality");
+        scale8x = createRadio("8x Quality");
 
-        scaleGroup = new ButtonGroup();
-        scaleGroup.add(scale2x);
-        scaleGroup.add(scale4x);
-        scaleGroup.add(scale8x);
+        ButtonGroup group = new ButtonGroup();
+        group.add(scale2x);
+        group.add(scale4x);
+        group.add(scale8x);
 
-        mainPanel.add(scale2x, gbc);
-        gbc.gridy++;
-        mainPanel.add(scale4x, gbc);
-        gbc.gridy++;
-        mainPanel.add(scale8x, gbc);
+        // Значение по умолчанию
+        scale4x.setSelected(true);
 
-        submitButton = new JButton("Submit");
-        submitButton.setFocusPainted(false);
-        submitButton.setBackground(Color.GRAY);
-        submitButton.setForeground(Color.WHITE);
-        submitButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-
-        submitButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
-        submitButton.setContentAreaFilled(true);
-        submitButton.setOpaque(true);
-
-        cancelButton = new JButton("Cancel");
-        cancelButton.setFocusPainted(false);
-        cancelButton.setBackground(Color.GRAY);
-        cancelButton.setForeground(Color.WHITE);
-        cancelButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        cancelButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
-        cancelButton.setContentAreaFilled(true);
-        cancelButton.setOpaque(true);
+        mainPanel.add(scale2x);
+        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(scale4x);
+        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(scale8x);
+        mainPanel.add(Box.createVerticalStrut(20));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
-        buttonPanel.setBackground(new Color(245, 245, 245));
+        buttonPanel.setBackground(new Color(40, 44, 52));
+
+        submitButton = createDialogButton("Submit");
+        cancelButton = createDialogButton("Cancel");
+
         buttonPanel.add(submitButton);
         buttonPanel.add(cancelButton);
 
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        mainPanel.add(buttonPanel, gbc);
+        mainPanel.add(buttonPanel);
 
         setContentPane(mainPanel);
 
-        // Кнопки
+        // === Обработчики
         submitButton.addActionListener(e -> {
-            if (scale2x.isSelected()) selectedScale = "2x";
-            else if (scale4x.isSelected()) selectedScale = "4x";
-            else if (scale8x.isSelected()) selectedScale = "8x";
+            if (scale2x.isSelected()) selectedScale = "2";
+            else if (scale4x.isSelected()) selectedScale = "4";
+            else if (scale8x.isSelected()) selectedScale = "8";
             else selectedScale = null;
             setVisible(false);
         });
@@ -96,7 +83,28 @@ public class Panel4imageScaler extends JDialog {
             setVisible(false);
         });
 
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    }
+
+    private JRadioButton createRadio(String label) {
+        JRadioButton btn = new JRadioButton(label);
+        btn.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(new Color(40, 44, 52));
+        btn.setFocusPainted(false);
+        btn.setOpaque(true);
+        return btn;
+    }
+
+    private JButton createDialogButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setBackground(new Color(60, 63, 65));
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
     }
 
     public String getSelectedScale() {

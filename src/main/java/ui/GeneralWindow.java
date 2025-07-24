@@ -9,30 +9,26 @@ public class GeneralWindow extends JFrame {
 
     public GeneralWindow() {
         try {
-            UIManager.setLookAndFeel(new FlatDarkLaf()); // 🌑 Темная тема
+            UIManager.setLookAndFeel(new FlatDarkLaf()); // тёмная тема
         } catch (Exception e) {
             System.err.println("Не удалось применить тему FlatLaf :(");
         }
 
         setTitle("Upscaler");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(980, 620);
+        setMinimumSize(new Dimension(960, 620));
         setLocationRelativeTo(null);
-        setResizable(false); // 🔒 запрещаем изменение размера
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setResizable(true); // ✅ теперь окно можно масштабировать
 
-        // ✅ Глобальный layout
         setLayout(new BorderLayout());
 
-        // === Sidebar (левая панель навигации)
         NavigationPanel sidebar = new NavigationPanel();
         sidebar.setPreferredSize(new Dimension(220, 600));
         sidebar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // === Content area (правый блок)
         JPanel contentPanel = new JPanel(new CardLayout());
         contentPanel.setBackground(new Color(32, 34, 37));
 
-        // === Секции (по примеру Upscayl)
         ImageSectionPanel imagePanel = new ImageSectionPanel();
         VideoSectionPanel videoPanel = new VideoSectionPanel();
         SettingsSectionPanel settingsPanel = new SettingsSectionPanel();
@@ -41,17 +37,14 @@ public class GeneralWindow extends JFrame {
         contentPanel.add(videoPanel, "videos");
         contentPanel.add(settingsPanel, "settings");
 
-        // === Навигация (обработка переключения секций)
-        sidebar.setNavigationListener(sectionName -> {
+        sidebar.setNavigationListener(section -> {
             CardLayout cl = (CardLayout) contentPanel.getLayout();
-            cl.show(contentPanel, sectionName);
+            cl.show(contentPanel, section);
         });
 
-        // === Добавляем в main window
         add(sidebar, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);
 
-        // === Инициализация
         setVisible(true);
     }
 }

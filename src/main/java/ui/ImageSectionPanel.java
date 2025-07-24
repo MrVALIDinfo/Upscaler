@@ -23,7 +23,7 @@ public class ImageSectionPanel extends JPanel {
 
     public ImageSectionPanel() {
         setLayout(new BorderLayout());
-        setBackground(new Color(40, 44, 52)); // FlatLaf немного темнее
+        setBackground(new Color(40, 44, 52)); // фон FlatLaf
 
         JLabel title = new JLabel("Upscale Image", SwingConstants.CENTER);
         title.setFont(new Font("SansSerif", Font.BOLD, 22));
@@ -38,7 +38,6 @@ public class ImageSectionPanel extends JPanel {
         previewScroll.setBorder(BorderFactory.createLineBorder(new Color(60, 63, 65)));
         previewScroll.getViewport().setBackground(new Color(30, 33, 36));
 
-        // Кнопки операций
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 14));
         buttons.setBackground(new Color(40, 44, 52));
 
@@ -54,7 +53,6 @@ public class ImageSectionPanel extends JPanel {
         buttons.add(zoomIn);
         buttons.add(zoomOut);
 
-        // Обработчики
         upload.addActionListener(e -> {
             BufferedImage img = InputImage.loadImage();
             if (img != null) {
@@ -86,9 +84,8 @@ public class ImageSectionPanel extends JPanel {
                 ImageIO.write(currentImage, "png", inputTemp);
                 ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), outputFile.getAbsolutePath());
 
-                if (!outputFile.exists()) {
+                if (!outputFile.exists())
                     throw new IOException("Output file not found at: " + outputFile.getAbsolutePath());
-                }
 
                 BufferedImage resultImage = ImageIO.read(outputFile);
                 currentImage = resultImage;
@@ -96,6 +93,11 @@ public class ImageSectionPanel extends JPanel {
                 showPreview();
 
                 JOptionPane.showMessageDialog(this, "✅ Upscaled x" + scaleOption);
+
+                // 👌 Удаляем временные файлы
+                inputTemp.delete();
+                outputFile.delete();
+
             } catch (IOException | InterruptedException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "❌ Error: " + ex.getMessage());
@@ -134,16 +136,20 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        JPanel center = new JPanel();
-        center.setOpaque(false);
-        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
-        center.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
-        center.add(previewScroll);
-        center.add(Box.createVerticalStrut(10));
-        center.add(buttons);
+        JPanel centerPart = new JPanel();
+        centerPart.setOpaque(false);
+        centerPart.setLayout(new BoxLayout(centerPart, BoxLayout.Y_AXIS));
+        centerPart.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        centerPart.add(title);
+        centerPart.add(Box.createVerticalStrut(10));
+        centerPart.add(previewScroll);
 
-        add(title, BorderLayout.NORTH);
-        add(center, BorderLayout.CENTER);
+        JPanel page = new JPanel(new BorderLayout());
+        page.setOpaque(false);
+        page.add(centerPart, BorderLayout.CENTER);
+        page.add(buttons, BorderLayout.SOUTH); // 👉 кнопки прижаты к низу
+
+        add(page, BorderLayout.CENTER);
     }
 
     private void showPreview() {
