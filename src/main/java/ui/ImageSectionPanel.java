@@ -18,38 +18,43 @@ public class ImageSectionPanel extends JPanel {
     private JScrollPane previewScroll;
     private double zoom = 1.0;
 
-    private static final int PREVIEW_W = 840;
-    private static final int PREVIEW_H = 360;
+    private static final int PREVIEW_W = 800;
+    private static final int PREVIEW_H = 400;
 
     public ImageSectionPanel() {
         setLayout(new BorderLayout());
-        setBackground(new Color(247, 248, 250));
+        setBackground(new Color(40, 44, 52)); // FlatLaf немного темнее
 
-        JLabel title = new JLabel("Image Upscaling", SwingConstants.CENTER);
-        title.setFont(new Font("Dialog", Font.BOLD, 18));
-        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        JLabel title = new JLabel("Upscale Image", SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 22));
+        title.setForeground(Color.WHITE);
+        title.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
 
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
 
         previewScroll = new JScrollPane(imageLabel);
         previewScroll.setPreferredSize(new Dimension(PREVIEW_W, PREVIEW_H));
-        previewScroll.getViewport().setBackground(Color.LIGHT_GRAY);
-        previewScroll.setBorder(BorderFactory.createEmptyBorder());
+        previewScroll.setBorder(BorderFactory.createLineBorder(new Color(60, 63, 65)));
+        previewScroll.getViewport().setBackground(new Color(30, 33, 36));
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 16));
-        JButton upload = createMainButton("Upload");
+        // Кнопки операций
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 14));
+        buttons.setBackground(new Color(40, 44, 52));
+
+        JButton upload = createMainButton("Open");
         JButton upscale = createMainButton("Upscale");
-        JButton download = createMainButton("Download");
-        JButton zoomIn = createMainButton("+");
-        JButton zoomOut = createMainButton("-");
+        JButton save = createMainButton("Save");
+        JButton zoomIn = createMainButton("Zoom +");
+        JButton zoomOut = createMainButton("Zoom -");
 
         buttons.add(upload);
         buttons.add(upscale);
-        buttons.add(download);
+        buttons.add(save);
         buttons.add(zoomIn);
         buttons.add(zoomOut);
 
+        // Обработчики
         upload.addActionListener(e -> {
             BufferedImage img = InputImage.loadImage();
             if (img != null) {
@@ -57,13 +62,13 @@ public class ImageSectionPanel extends JPanel {
                 zoom = getInitialZoom(img.getWidth(), img.getHeight());
                 showPreview();
             } else {
-                JOptionPane.showMessageDialog(this, "Файл не выбран.");
+                JOptionPane.showMessageDialog(this, "No file selected.");
             }
         });
 
         upscale.addActionListener(e -> {
             if (currentImage == null) {
-                JOptionPane.showMessageDialog(this, "Сначала загрузите изображение.");
+                JOptionPane.showMessageDialog(this, "Please load an image first.");
                 return;
             }
 
@@ -71,51 +76,37 @@ public class ImageSectionPanel extends JPanel {
             dialog.setVisible(true);
             String scaleOption = dialog.getSelectedScale();
 
-            if (scaleOption == null) {
-                return;
-            }
+            if (scaleOption == null) return;
 
             try {
-                // Путь в ту же папку, где и RealESRGAN.exe
                 String basePath = "src/main/java/Models/AI/REALESRGAN/";
                 File inputTemp = new File(basePath + "image_temp_input.png");
                 File outputFile = new File(basePath + "image_temp_output.png");
 
-                // Сохраняем картинку во временный файл
                 ImageIO.write(currentImage, "png", inputTemp);
-
-                // Апскейлим
                 ImageUpscaler.upscaleImage(inputTemp.getAbsolutePath(), outputFile.getAbsolutePath());
 
-                // Проверка перед чтением
-                System.out.println("[DEBUG] Output path: " + outputFile.getAbsolutePath());
-                System.out.println("[DEBUG] Exists: " + outputFile.exists());
-                System.out.println("[DEBUG] Size: " + outputFile.length() + " bytes");
-
                 if (!outputFile.exists()) {
-                    throw new IOException("Файл upscale-результата не найден: " + outputFile.getAbsolutePath());
+                    throw new IOException("Output file not found at: " + outputFile.getAbsolutePath());
                 }
 
-                // Читаем upscale изображение
                 BufferedImage resultImage = ImageIO.read(outputFile);
-
                 currentImage = resultImage;
                 zoom = getInitialZoom(resultImage.getWidth(), resultImage.getHeight());
                 showPreview();
 
-                JOptionPane.showMessageDialog(this, "✅ Апскейлинг завершен! (" + scaleOption + ")");
-
+                JOptionPane.showMessageDialog(this, "✅ Upscaled x" + scaleOption);
             } catch (IOException | InterruptedException ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "❌ Ошибка при апскейлинге: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "❌ Error: " + ex.getMessage());
             }
         });
 
-        download.addActionListener(e -> {
+        save.addActionListener(e -> {
             if (currentImage != null) {
                 OutputImage.saveImage(currentImage);
             } else {
-                JOptionPane.showMessageDialog(this, "Нет изображения для сохранения.");
+                JOptionPane.showMessageDialog(this, "Nothing to save.");
             }
         });
 
@@ -135,11 +126,10 @@ public class ImageSectionPanel extends JPanel {
 
         previewScroll.addMouseWheelListener(e -> {
             if (currentImage != null && e.isControlDown()) {
-                if (e.getWheelRotation() < 0) {
+                if (e.getWheelRotation() < 0)
                     zoom = Math.min(zoom * 1.1, 8.0);
-                } else {
+                else
                     zoom = Math.max(zoom / 1.1, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
-                }
                 showPreview();
             }
         });
@@ -147,12 +137,13 @@ public class ImageSectionPanel extends JPanel {
         JPanel center = new JPanel();
         center.setOpaque(false);
         center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
         center.add(previewScroll);
         center.add(Box.createVerticalStrut(10));
+        center.add(buttons);
 
         add(title, BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
-        add(buttons, BorderLayout.SOUTH);
     }
 
     private void showPreview() {
@@ -185,15 +176,12 @@ public class ImageSectionPanel extends JPanel {
 
     private JButton createMainButton(String text) {
         JButton btn = new JButton(text.toUpperCase());
-        btn.setBackground(new Color(35, 39, 47));
+        btn.setBackground(new Color(60, 63, 65));
         btn.setForeground(Color.WHITE);
-        btn.setOpaque(true);
-        btn.setContentAreaFilled(true);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("Dialog", Font.BOLD, 12));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
         btn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
 }

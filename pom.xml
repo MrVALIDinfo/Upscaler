@@ -15,11 +15,20 @@
     </properties>
 
     <dependencies>
+        <!-- ONNX Runtime -->
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
             <version>1.15.1</version>
         </dependency>
-    </dependencies>
 
+        <!-- FlatLaf -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.1</version>
+        </dependency>
+
+        <!-- (опционально) если нужна работать с WebP / TIFF — можно добавить Java ImageIO plugins -->
+    </dependencies>
 </project>
