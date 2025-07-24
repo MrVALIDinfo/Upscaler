@@ -43,12 +43,4 @@ public class ImageUpscaler {
         System.out.println("🎉 Готово! Изображение успешно апскейлено.");
     }
 
-    public static void main(String[] args) {
-        try {
-            // 🔁 Замени пути на реальные
-            upscaleImage("C:\\Users\\acer\\Pictures\\test.jpg", "C:\\Users\\acer\\Pictures\\test_upscaled.png");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }
