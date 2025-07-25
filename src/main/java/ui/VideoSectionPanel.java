@@ -1,12 +1,18 @@
 package ui;
 
+import VideoScaler.InputVideo;
+import VideoScaler.OutputVideo;
+import VideoScaler.VideoUpscaler;
+
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 
 public class VideoSectionPanel extends JPanel {
 
     private final JLabel videoLabel = new JLabel("No video loaded", SwingConstants.CENTER);
     private final JProgressBar progressBar;
+    private File currentVideo;
     private double zoom = 1.0;
 
     private static final int PREVIEW_W = 800;
@@ -30,8 +36,7 @@ public class VideoSectionPanel extends JPanel {
         previewScroll.setBorder(BorderFactory.createLineBorder(new Color(60, 63, 65)));
         previewScroll.getViewport().setBackground(new Color(30, 33, 36));
 
-        progressBar = new JProgressBar();
-        progressBar.setIndeterminate(false);
+        progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(true);
         progressBar.setVisible(false);
         progressBar.setForeground(new Color(100, 200, 100));
@@ -50,76 +55,90 @@ public class VideoSectionPanel extends JPanel {
         JButton upscale = createMainButton("Upscale");
         JButton clear = createMainButton("Clear");
         JButton save = createMainButton("Save");
-        JButton zoomIn = createMainButton("Zoom +");
-        JButton zoomOut = createMainButton("Zoom -");
 
+        // Zoom отключаем - не нужен сейчас для видео превью
         buttons.add(upload);
         buttons.add(upscale);
         buttons.add(clear);
         buttons.add(save);
-        buttons.add(zoomIn);
-        buttons.add(zoomOut);
 
         upload.addActionListener(_ -> {
-            videoLabel.setText("Video loaded (demo)");
-            videoLabel.setIcon(null);
-            zoom = 1.0;
-            videoLabel.revalidate();
-            videoLabel.repaint();
+            File file = InputVideo.loadVideo();
+            if (file != null) {
+                currentVideo = file;
+                videoLabel.setText("🎥 Loaded: " + file.getName());
+                videoLabel.setForeground(Color.LIGHT_GRAY);
+                generateThumbnail(file);
+            }
         });
 
         upscale.addActionListener(_ -> {
+            if (currentVideo == null) {
+                JOptionPane.showMessageDialog(this, "Please load a video first.");
+                return;
+            }
+
+            if (!isFFmpegAvailable()) {
+                JOptionPane.showMessageDialog(this, "⚠ FFmpeg is not available in PATH.");
+                return;
+            }
+
+            Panel4videoScaler dialog = new Panel4videoScaler((Frame) SwingUtilities.getWindowAncestor(this));
+            dialog.setVisible(true);
+            String selectedModel = dialog.getSelectedModel();
+
+            if (selectedModel == null) return;
+
+            File outputFile = OutputVideo.chooseSaveLocation("upscaled_video.mp4");
+            if (outputFile == null) return;
+
             progressBar.setVisible(true);
-            progressBar.setIndeterminate(true);
+            progressBar.setValue(0);
             progressBar.setString("Upscaling...");
+
             setButtonsEnabled(buttons, false);
 
-            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            SwingWorker<Void, Integer> worker = new SwingWorker<>() {
                 @Override
-                protected Void doInBackground() {
-                    try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+                protected Void doInBackground() throws Exception {
+                    VideoUpscaler.upscaleVideo(
+                            currentVideo.getAbsolutePath(),
+                            outputFile.getAbsolutePath(),
+                            selectedModel,
+                            this::publish
+                    );
                     return null;
                 }
+
+                @Override
+                protected void process(java.util.List<Integer> chunks) {
+                    int last = chunks.get(chunks.size() - 1);
+                    progressBar.setValue(last);
+                    progressBar.setString("Upscaling... " + last + "%");
+                }
+
                 @Override
                 protected void done() {
-                    progressBar.setVisible(false);
-                    progressBar.setIndeterminate(false);
+                    progressBar.setValue(100);
+                    progressBar.setString("Done!");
                     setButtonsEnabled(buttons, true);
-                    JOptionPane.showMessageDialog(VideoSectionPanel.this, "✅ Demo upscaling complete!");
+                    JOptionPane.showMessageDialog(VideoSectionPanel.this,
+                            "🎉 Upscaling complete:\n" + outputFile.getName());
                 }
             };
             worker.execute();
         });
 
         clear.addActionListener(_ -> {
-            videoLabel.setIcon(null);
+            currentVideo = null;
             videoLabel.setText("No video loaded");
+            videoLabel.setIcon(null);
+            videoLabel.setForeground(Color.GRAY);
             zoom = 1.0;
-            videoLabel.revalidate();
-            videoLabel.repaint();
         });
 
         save.addActionListener(_ -> {
-            JOptionPane.showMessageDialog(this, "Demo: Save video (not implemented)");
-        });
-
-        zoomIn.addActionListener(_ -> {
-            zoom = Math.min(zoom * 1.25, 8.0);
-            videoLabel.setText("Zoom: " + String.format("%.2f", zoom) + "x (demo)");
-        });
-
-        zoomOut.addActionListener(_ -> {
-            zoom = Math.max(zoom / 1.25, 1.0);
-            videoLabel.setText("Zoom: " + String.format("%.2f", zoom) + "x (demo)");
-        });
-
-        previewScroll.addMouseWheelListener(e -> {
-            if (e.isControlDown()) {
-                zoom = (e.getWheelRotation() < 0)
-                        ? Math.min(zoom * 1.1, 8.0)
-                        : Math.max(zoom / 1.1, 1.0);
-                videoLabel.setText("Zoom: " + String.format("%.2f", zoom) + "x (demo)");
-            }
+            JOptionPane.showMessageDialog(this, "Use 'Upscale' to generate new result.");
         });
 
         JPanel center = new JPanel();
@@ -154,5 +173,35 @@ public class VideoSectionPanel extends JPanel {
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
+    }
+
+    private void generateThumbnail(File video) {
+        try {
+            File outputImage = new File("frame_preview.png");
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffmpeg", "-i", video.getAbsolutePath(),
+                    "-ss", "00:00:01", "-vframes", "1", "-y",
+                    outputImage.getAbsolutePath()
+            );
+            pb.inheritIO().start().waitFor();
+
+            if (outputImage.exists()) {
+                ImageIcon icon = new ImageIcon(outputImage.getAbsolutePath());
+                Image scaled = icon.getImage().getScaledInstance(320, 180, Image.SCALE_SMOOTH);
+                videoLabel.setIcon(new ImageIcon(scaled));
+                videoLabel.setText(null);
+            }
+        } catch (Exception e) {
+            System.err.println("⚠ Failed to generate thumbnail: " + e.getMessage());
+        }
+    }
+
+    private boolean isFFmpegAvailable() {
+        try {
+            Process process = new ProcessBuilder("ffmpeg", "-version").start();
+            return process.waitFor() == 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
