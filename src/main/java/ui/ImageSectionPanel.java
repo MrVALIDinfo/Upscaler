@@ -18,6 +18,7 @@ public class ImageSectionPanel extends JPanel {
     private JScrollPane previewScroll;
     private double zoom = 1.0;
     private final JProgressBar progressBar;
+    private SwingWorker<BufferedImage, Void> upscaleWorker;
 
     private static final int PREVIEW_W = 800;
     private static final int PREVIEW_H = 600;
@@ -57,12 +58,14 @@ public class ImageSectionPanel extends JPanel {
 
         JButton upload = createMainButton("Open");
         JButton upscale = createMainButton("Upscale");
+        JButton cancel = createMainButton("Cancel");
         JButton save = createMainButton("Save");
         JButton zoomIn = createMainButton("Zoom +");
         JButton zoomOut = createMainButton("Zoom -");
 
         buttons.add(upload);
         buttons.add(upscale);
+        buttons.add(cancel);
         buttons.add(save);
         buttons.add(zoomIn);
         buttons.add(zoomOut);
@@ -98,48 +101,63 @@ public class ImageSectionPanel extends JPanel {
 
             setButtonsEnabled(buttons, false);
 
-            new SwingWorker<BufferedImage, Void>() {
+            upscaleWorker = new SwingWorker<>() {
+                File input, output;
+
                 @Override
                 protected BufferedImage doInBackground() throws Exception {
                     File tempDir = new File("src/main/java/Models/AI/REALESRGAN/temp_upscale");
                     if (!tempDir.exists()) tempDir.mkdirs();
 
                     String unique = String.valueOf(System.currentTimeMillis());
-                    File input = new File(tempDir, "input_" + unique + ".png");
-                    File output = new File(tempDir, "output_" + unique + ".png");
+                    input = new File(tempDir, "input_" + unique + ".png");
+                    output = new File(tempDir, "output_" + unique + ".png");
 
                     ImageIO.write(currentImage, "png", input);
                     ImageUpscaler.upscaleImage(input.getAbsolutePath(), output.getAbsolutePath(), model);
 
                     if (!output.exists()) throw new IOException("Output file missing: " + output.getAbsolutePath());
 
-                    BufferedImage result = ImageIO.read(output);
-
-                    input.delete();
-                    output.delete();
-
-                    return result;
+                    return ImageIO.read(output);
                 }
 
                 @Override
                 protected void done() {
                     try {
-                        currentImage = get();
-                        zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
-                        showPreview();
-                        JOptionPane.showMessageDialog(ImageSectionPanel.this,
-                                "✅ Upscaled with model: " + model + ", scale: " + scale + "x");
+                        if (!isCancelled()) {
+                            currentImage = get();
+                            zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
+                            showPreview();
+                            JOptionPane.showMessageDialog(ImageSectionPanel.this,
+                                    "✅ Upscaled with model: " + model + ", scale: " + scale + "x");
+                        } else {
+                            JOptionPane.showMessageDialog(ImageSectionPanel.this,
+                                    "❌ Upscaling cancelled.");
+                        }
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         JOptionPane.showMessageDialog(ImageSectionPanel.this,
                                 "❌ Error: " + ex.getMessage());
                     } finally {
+                        if (input != null) input.delete();
+                        if (output != null) output.delete();
                         progressBar.setVisible(false);
                         progressBar.setIndeterminate(false);
                         setButtonsEnabled(buttons, true);
+                        upscaleWorker = null;
                     }
                 }
-            }.execute();
+            };
+            upscaleWorker.execute();
+        });
+
+        cancel.addActionListener(e -> {
+            if (upscaleWorker != null && !upscaleWorker.isDone()) {
+                upscaleWorker.cancel(true);
+                deleteTempFiles();
+                progressBar.setVisible(false);
+                setButtonsEnabled(buttons, true);
+            }
         });
 
         save.addActionListener(e -> {
@@ -188,6 +206,19 @@ public class ImageSectionPanel extends JPanel {
 
         add(page, BorderLayout.CENTER);
         add(progressPanel, BorderLayout.SOUTH);
+    }
+
+    private void deleteTempFiles() {
+        File tempDir = new File("src/main/java/Models/AI/REALESRGAN/temp_upscale");
+        if (tempDir.exists()) {
+            for (File file : tempDir.listFiles()) {
+                if (file.getName().endsWith(".png")) file.delete();
+            }
+        }
+    }
+
+    public void cleanupOnExit() {
+        deleteTempFiles();
     }
 
     private void showPreview() {

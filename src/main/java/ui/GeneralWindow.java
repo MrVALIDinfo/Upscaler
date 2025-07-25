@@ -4,8 +4,12 @@ import com.formdev.flatlaf.FlatDarkLaf;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class GeneralWindow extends JFrame {
+
+    private ImageSectionPanel imagePanel;
 
     public GeneralWindow() {
         try {
@@ -28,7 +32,7 @@ public class GeneralWindow extends JFrame {
         contentPanel.setBackground(new Color(32, 34, 37));
         contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        ImageSectionPanel imagePanel = new ImageSectionPanel();
+        imagePanel = new ImageSectionPanel();
         VideoSectionPanel videoPanel = new VideoSectionPanel();
         SettingsSectionPanel settingsPanel = new SettingsSectionPanel();
 
@@ -43,6 +47,15 @@ public class GeneralWindow extends JFrame {
 
         add(sidebar, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (imagePanel != null) {
+                    imagePanel.cleanupOnExit();
+                }
+            }
+        });
 
         pack();
         setVisible(true);
