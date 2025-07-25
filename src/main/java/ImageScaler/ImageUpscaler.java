@@ -4,6 +4,16 @@ import java.io.*;
 
 public class ImageUpscaler {
 
+    private static Process currentProcess;
+
+    public static void cancelRunningProcess() {
+        if (currentProcess != null && currentProcess.isAlive()) {
+            currentProcess.destroy();
+            currentProcess = null;
+            System.out.println("[RealESRGAN] Process was cancelled.");
+        }
+    }
+
     public static void upscaleImage(String inputImagePath, String outputImagePath, String modelName)
             throws IOException, InterruptedException {
 
@@ -32,17 +42,20 @@ public class ImageUpscaler {
         builder.directory(new File("src/main/java/Models/AI/REALESRGAN"));
         builder.redirectErrorStream(true);
 
-        Process process = builder.start();
+        currentProcess = builder.start();
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 System.out.println("[RealESRGAN] " + line);
             }
         }
 
-        int exitCode = process.waitFor();
-        if (exitCode != 0)
+        int exitCode = currentProcess.waitFor();
+        currentProcess = null;
+
+        if (exitCode != 0) {
             throw new RuntimeException("RealESRGAN exited with code: " + exitCode);
+        }
     }
 }

@@ -13,7 +13,6 @@ public class SettingsSectionPanel extends JPanel {
 
     private final JComboBox<String> themeSelect;
     private final JButton applyThemeButton;
-    private final JButton cleanupTempButton;
 
     public SettingsSectionPanel() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -61,32 +60,6 @@ public class SettingsSectionPanel extends JPanel {
             }
         });
 
-        cleanupTempButton = new JButton("🧹 Очистить временные файлы");
-        cleanupTempButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        cleanupTempButton.setFocusPainted(false);
-        cleanupTempButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        cleanupTempButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        cleanupTempButton.addActionListener(e -> {
-            File tempDir = new File("src/main/java/Models/AI/REALESRGAN/temp_upscale");
-            if (tempDir.exists() && tempDir.isDirectory()) {
-                int count = 0;
-                for (File f : tempDir.listFiles()) {
-                    if (f.getName().endsWith(".png")) {
-                        if (f.delete()) count++;
-                    }
-                }
-                JOptionPane.showMessageDialog(this, "Удалено файлов: " + count);
-            } else {
-                JOptionPane.showMessageDialog(this, "Временная папка не найдена.");
-            }
-        });
-
-        add(themeSelect);
-        add(Box.createVerticalStrut(10));
-        add(applyThemeButton);
-        add(Box.createVerticalStrut(30));
-        add(cleanupTempButton);
-        add(Box.createVerticalGlue());
     }
 }

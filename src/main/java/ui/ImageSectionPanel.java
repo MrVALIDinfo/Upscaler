@@ -14,8 +14,7 @@ import java.io.IOException;
 public class ImageSectionPanel extends JPanel {
 
     private BufferedImage currentImage;
-    private JLabel imageLabel = new JLabel();
-    private JScrollPane previewScroll;
+    private final JLabel imageLabel = new JLabel("No image loaded", SwingConstants.CENTER);
     private double zoom = 1.0;
     private final JProgressBar progressBar;
     private SwingWorker<BufferedImage, Void> upscaleWorker;
@@ -34,8 +33,9 @@ public class ImageSectionPanel extends JPanel {
 
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+        imageLabel.setForeground(Color.GRAY);
 
-        previewScroll = new JScrollPane(imageLabel);
+        JScrollPane previewScroll = new JScrollPane(imageLabel);
         previewScroll.setPreferredSize(new Dimension(PREVIEW_W, PREVIEW_H));
         previewScroll.setBorder(BorderFactory.createLineBorder(new Color(60, 63, 65)));
         previewScroll.getViewport().setBackground(new Color(30, 33, 36));
@@ -58,19 +58,19 @@ public class ImageSectionPanel extends JPanel {
 
         JButton upload = createMainButton("Open");
         JButton upscale = createMainButton("Upscale");
-        JButton cancel = createMainButton("Cancel");
+        JButton clear = createMainButton("Clear");
         JButton save = createMainButton("Save");
         JButton zoomIn = createMainButton("Zoom +");
         JButton zoomOut = createMainButton("Zoom -");
 
         buttons.add(upload);
         buttons.add(upscale);
-        buttons.add(cancel);
+        buttons.add(clear);
         buttons.add(save);
         buttons.add(zoomIn);
         buttons.add(zoomOut);
 
-        upload.addActionListener(e -> {
+        upload.addActionListener(_ -> {
             BufferedImage img = InputImage.loadImage();
             if (img != null) {
                 currentImage = img;
@@ -81,7 +81,7 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        upscale.addActionListener(e -> {
+        upscale.addActionListener(_ -> {
             if (currentImage == null) {
                 JOptionPane.showMessageDialog(this, "Please load an image first.");
                 return;
@@ -130,14 +130,10 @@ public class ImageSectionPanel extends JPanel {
                             showPreview();
                             JOptionPane.showMessageDialog(ImageSectionPanel.this,
                                     "✅ Upscaled with model: " + model + ", scale: " + scale + "x");
-                        } else {
-                            JOptionPane.showMessageDialog(ImageSectionPanel.this,
-                                    "❌ Upscaling cancelled.");
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
-                        JOptionPane.showMessageDialog(ImageSectionPanel.this,
-                                "❌ Error: " + ex.getMessage());
+                        JOptionPane.showMessageDialog(ImageSectionPanel.this, "❌ Error: " + ex.getMessage());
                     } finally {
                         if (input != null) input.delete();
                         if (output != null) output.delete();
@@ -151,16 +147,16 @@ public class ImageSectionPanel extends JPanel {
             upscaleWorker.execute();
         });
 
-        cancel.addActionListener(e -> {
-            if (upscaleWorker != null && !upscaleWorker.isDone()) {
-                upscaleWorker.cancel(true);
-                deleteTempFiles();
-                progressBar.setVisible(false);
-                setButtonsEnabled(buttons, true);
-            }
+        clear.addActionListener(_ -> {
+            currentImage = null;
+            imageLabel.setIcon(null);
+            imageLabel.setText("No image loaded");
+            zoom = 1.0;
+            imageLabel.revalidate();
+            imageLabel.repaint();
         });
 
-        save.addActionListener(e -> {
+        save.addActionListener(_ -> {
             if (currentImage != null) {
                 OutputImage.saveImage(currentImage);
             } else {
@@ -168,14 +164,14 @@ public class ImageSectionPanel extends JPanel {
             }
         });
 
-        zoomIn.addActionListener(e -> {
+        zoomIn.addActionListener(_ -> {
             if (currentImage != null) {
                 zoom = Math.min(zoom * 1.25, 8.0);
                 showPreview();
             }
         });
 
-        zoomOut.addActionListener(e -> {
+        zoomOut.addActionListener(_ -> {
             if (currentImage != null) {
                 zoom = Math.max(zoom / 1.25, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
                 showPreview();
@@ -208,25 +204,13 @@ public class ImageSectionPanel extends JPanel {
         add(progressPanel, BorderLayout.SOUTH);
     }
 
-    private void deleteTempFiles() {
-        File tempDir = new File("src/main/java/Models/AI/REALESRGAN/temp_upscale");
-        if (tempDir.exists()) {
-            for (File file : tempDir.listFiles()) {
-                if (file.getName().endsWith(".png")) file.delete();
-            }
-        }
-    }
-
-    public void cleanupOnExit() {
-        deleteTempFiles();
-    }
-
     private void showPreview() {
         if (currentImage == null) return;
         int w = (int) (currentImage.getWidth() * zoom);
         int h = (int) (currentImage.getHeight() * zoom);
         Image scaled = getHighQualityScaledImage(currentImage, w, h);
         imageLabel.setIcon(new ImageIcon(scaled));
+        imageLabel.setText(null);
         imageLabel.setPreferredSize(new Dimension(w, h));
         imageLabel.revalidate();
     }
@@ -250,8 +234,7 @@ public class ImageSectionPanel extends JPanel {
     }
 
     private double getInitialZoom(int imgW, int imgH) {
-        double maxW = PREVIEW_W, maxH = PREVIEW_H;
-        double scale = Math.min(maxW / imgW, maxH / imgH);
+        double scale = Math.min((double) PREVIEW_W / imgW, (double) PREVIEW_H / imgH);
         return Math.min(scale, 1.0);
     }
 
@@ -265,4 +248,12 @@ public class ImageSectionPanel extends JPanel {
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
     }
-}
+
+    public void cleanupOnExit() {
+        File tempDir = new File("src/main/java/Models/AI/REALESRGAN/temp_upscale");
+        if (tempDir.exists()) {
+            for (File file : tempDir.listFiles()) {
+                if (file.getName().endsWith(".png")) file.delete();
+            }
+        }
+    }    }
