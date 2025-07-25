@@ -2,21 +2,28 @@ package ui;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.function.Consumer;
+import java.io.File;
 
 public class NavigationPanel extends JPanel {
 
-    private Consumer<String> navigationListener;
+    private java.util.function.Consumer<String> navigationListener;
 
     public NavigationPanel() {
         setBackground(new Color(35, 39, 47));
         setPreferredSize(new Dimension(200, 0));
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-        JLabel icon = new JLabel("🖼️", SwingConstants.CENTER);
-        icon.setForeground(Color.WHITE);
-        icon.setFont(new Font("Dialog", Font.PLAIN, 36));
+        File logoFile = new File("src/main/java/res/logo.png");
+        JLabel icon;
+        if (logoFile.exists()) {
+            ImageIcon rawIcon = new ImageIcon(logoFile.getAbsolutePath());
+            Image scaledImage = rawIcon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH);
+            icon = new JLabel(new ImageIcon(scaledImage));
+        } else {
+            icon = new JLabel();
+        }
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
+        icon.setHorizontalAlignment(SwingConstants.CENTER);
 
         JLabel title = new JLabel("Upscaler", SwingConstants.CENTER);
         title.setForeground(Color.WHITE);
@@ -32,6 +39,7 @@ public class NavigationPanel extends JPanel {
         add(createNavButton("Images", "images"));
         add(createNavButton("Videos", "videos"));
         add(createNavButton("Settings", "settings"));
+        add(Box.createVerticalGlue());
     }
 
     private JButton createNavButton(String label, String sectionName) {
@@ -56,7 +64,7 @@ public class NavigationPanel extends JPanel {
         return btn;
     }
 
-    public void setNavigationListener(Consumer<String> listener) {
+    public void setNavigationListener(java.util.function.Consumer<String> listener) {
         this.navigationListener = listener;
     }
 }
