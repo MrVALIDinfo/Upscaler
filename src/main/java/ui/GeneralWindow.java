@@ -1,3 +1,4 @@
+// ui/GeneralWindow.java
 package ui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
@@ -22,37 +23,38 @@ public class GeneralWindow extends JFrame {
         setLayout(new BorderLayout());
         setResizable(true);
 
-        // ===== Top Navigation Tabs ===== //
-        JPanel topNav = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        topNav.setBackground(new Color(25, 27, 35));
+        JPanel topNavPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        topNavPanel.setBackground(new Color(25, 27, 35));
 
-        String[] tabs = { "Image Upscaler", "Video Upscaler", "Settings" };
+        String[] tabs = { "Image Upscaler", "Settings" };
         for (String tab : tabs) {
-            JButton button = new JButton(tab);
-            button.setFocusPainted(false);
-            button.setForeground(Color.WHITE);
-            button.setBackground(new Color(40, 44, 52));
-            button.setFont(new Font("SansSerif", Font.BOLD, 14));
-            button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            button.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
-            button.putClientProperty("JButton.buttonType", "roundRect");
+            JButton tabButton = new JButton(tab);
+            tabButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+            tabButton.setBackground(new Color(40, 44, 52));
+            tabButton.setForeground(Color.WHITE);
+            tabButton.setFocusPainted(false);
+            tabButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            tabButton.setBorder(BorderFactory.createEmptyBorder(12, 26, 12, 26));
+            tabButton.putClientProperty("JButton.buttonType", "roundRect");
 
-            button.addActionListener(e -> {
+            tabButton.addActionListener(e -> {
                 String key = tab.toLowerCase().replace(" ", "");
                 cardLayout.show(contentPanel, key);
             });
 
-            topNav.add(button);
+            JPanel wrapper = new JPanel(new BorderLayout());
+            wrapper.setBackground(new Color(25, 27, 35));
+            wrapper.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+            wrapper.add(tabButton);
+            topNavPanel.add(wrapper);
         }
 
-        add(topNav, BorderLayout.NORTH);
+        add(topNavPanel, BorderLayout.NORTH);
 
-        // ===== Content Area ===== //
         contentPanel.setBackground(new Color(32, 34, 37));
         contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         contentPanel.add(new ImageSectionPanel(), "imageupscaler");
-        contentPanel.add(new VideoSectionPanel(), "videoupscaler");
         contentPanel.add(new SettingsSectionPanel(), "settings");
 
         add(contentPanel, BorderLayout.CENTER);

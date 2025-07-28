@@ -23,16 +23,14 @@ public class ImageSectionPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(32, 34, 37));
 
-        // LEFT (steps panel)
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
         leftPanel.setPreferredSize(new Dimension(300, 0));
         leftPanel.setBackground(new Color(25, 27, 35));
-        leftPanel.setBorder(BorderFactory.createEmptyBorder(30, 20, 30, 20));
+        leftPanel.setBorder(BorderFactory.createEmptyBorder(30, 35, 30, 35));
 
         leftPanel.add(createTitleLabel("🔥 IMAGE UPSCALE"));
 
-        // Step 1: Select Image
         leftPanel.add(createStepLabel("Step 1: Select Image"));
         JButton selectImageBtn = createButton("Select Image");
         selectImageBtn.addActionListener(e -> {
@@ -45,9 +43,8 @@ public class ImageSectionPanel extends JPanel {
             }
         });
         leftPanel.add(selectImageBtn);
-        leftPanel.add(Box.createVerticalStrut(20));
+        leftPanel.add(Box.createVerticalStrut(25));
 
-        // Step 2: Select Model
         leftPanel.add(createStepLabel("Step 2: Select AI Model"));
         JComboBox<String> modelBox = new JComboBox<>(new String[]{
                 "realesrgan-x4plus",
@@ -59,9 +56,8 @@ public class ImageSectionPanel extends JPanel {
         modelBox.setMaximumSize(new Dimension(240, 32));
         modelBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         leftPanel.add(modelBox);
-
-        // Step 3: Set Scale
         leftPanel.add(Box.createVerticalStrut(25));
+
         leftPanel.add(createStepLabel("Step 3: Set Scale"));
         JLabel scaleLabel = new JLabel("Image Scale: x4");
         scaleLabel.setForeground(Color.LIGHT_GRAY);
@@ -72,16 +68,21 @@ public class ImageSectionPanel extends JPanel {
         JSlider scaleSlider = new JSlider(2, 10, 4);
         scaleSlider.setMajorTickSpacing(1);
         scaleSlider.setPaintTicks(true);
-        scaleSlider.setOpaque(false);
+        scaleSlider.setPaintLabels(true);
+        scaleSlider.setBackground(new Color(25, 27, 35));
+        scaleSlider.setForeground(Color.GRAY);
         scaleSlider.setMaximumSize(new Dimension(240, 40));
+        scaleSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        scaleSlider.setFocusable(false);
+        scaleSlider.putClientProperty("Slider.paintThumbArrowShape", true);
+        scaleSlider.putClientProperty("JComponent.roundRect", true);
         scaleSlider.addChangeListener(e -> {
             scaleMultiplier = scaleSlider.getValue();
             scaleLabel.setText("Image Scale: x" + scaleMultiplier);
         });
         leftPanel.add(scaleSlider);
-        leftPanel.add(Box.createVerticalStrut(30));
+        leftPanel.add(Box.createVerticalStrut(25));
 
-        // Step 4: Start Upscaling
         leftPanel.add(createStepLabel("Step 4: Start"));
         JButton upscaleBtn = createButton("Start Upscaling");
         upscaleBtn.addActionListener(e -> {
@@ -90,53 +91,57 @@ public class ImageSectionPanel extends JPanel {
                 return;
             }
 
-            File tempInput = new File("image_input.png");
-            final File[] output = {new File("image_output.png")};
-
             try {
-                ImageIO.write(currentImage, "png", tempInput);
+                File input = File.createTempFile("image_input", ".png");
+                File output = File.createTempFile("image_output", ".png");
+                input.deleteOnExit();
+                output.deleteOnExit();
+
+                ImageIO.write(currentImage, "png", input);
+
+                progressBar.setVisible(true);
+                progressBar.setIndeterminate(true);
+                progressBar.setString("Upscaling...");
+
+                new SwingWorker<Void, Void>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        File in = input;
+                        File out = output;
+                        for (int i = 0; i < getRepeatCount(scaleMultiplier); i++) {
+                            ImageUpscaler.upscaleImage(in.getAbsolutePath(), out.getAbsolutePath(), modelBox.getSelectedItem().toString());
+                            if (i < getRepeatCount(scaleMultiplier) - 1) {
+                                in = out;
+                                out = File.createTempFile("image_upscale_round_" + i, ".png");
+                                out.deleteOnExit();
+                            }
+                        }
+                        currentImage = ImageIO.read(out);
+                        return null;
+                    }
+
+                    @Override
+                    protected void done() {
+                        try {
+                            zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
+                            updatePreview();
+                            progressBar.setIndeterminate(false);
+                            progressBar.setString("Finished");
+                            saveImageBtn.setEnabled(true);
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(ImageSectionPanel.this, "❌ Failed: " + ex.getMessage());
+                        }
+                    }
+                }.execute();
+
             } catch (Exception ex) {
                 ex.printStackTrace();
-                return;
+                JOptionPane.showMessageDialog(this, "⚠ Error during processing.");
             }
-
-            progressBar.setVisible(true);
-            progressBar.setIndeterminate(true);
-            progressBar.setString("Upscaling...");
-
-            new SwingWorker<Void, Void>() {
-                @Override
-                protected Void doInBackground() throws Exception {
-                    File input = tempInput;
-                    for (int i = 0; i < getRepeatCount(scaleMultiplier); i++) {
-                        ImageUpscaler.upscaleImage(input.getAbsolutePath(), output[0].getAbsolutePath(), modelBox.getSelectedItem().toString());
-
-                        // Установка текущего output как следующий input
-                        input = output[0];
-                        output[0] = new File("image_output_round_" + (i + 1) + ".png");
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        currentImage = ImageIO.read(new File("image_output_round_" + (getRepeatCount(scaleMultiplier) - 1) + ".png"));
-                        zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
-                        updatePreview();
-                        progressBar.setIndeterminate(false);
-                        progressBar.setString("Finished");
-                        saveImageBtn.setEnabled(true);
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(ImageSectionPanel.this, "❌ Failed: " + ex.getMessage());
-                    }
-                }
-            }.execute();
         });
         leftPanel.add(upscaleBtn);
+        leftPanel.add(Box.createVerticalStrut(25));
 
-        // Step 5: Save
-        leftPanel.add(Box.createVerticalStrut(20));
         leftPanel.add(createStepLabel("Step 5: Save Image"));
         saveImageBtn.setEnabled(false);
         saveImageBtn.addActionListener(e -> {
@@ -145,12 +150,13 @@ public class ImageSectionPanel extends JPanel {
             }
         });
         leftPanel.add(saveImageBtn);
-        leftPanel.add(Box.createVerticalStrut(20));
+        leftPanel.add(Box.createVerticalStrut(25));
+
         progressBar.setStringPainted(true);
         progressBar.setVisible(false);
         leftPanel.add(progressBar);
+        leftPanel.add(Box.createVerticalGlue());
 
-        // PREVIEW + ZOOM
         previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
         previewLabel.setForeground(Color.GRAY);
         previewLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -161,7 +167,6 @@ public class ImageSectionPanel extends JPanel {
         previewPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         previewPanel.add(previewLabel, BorderLayout.CENTER);
 
-        // Zoom panel
         JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 6));
         zoomPanel.setOpaque(false);
 
@@ -186,7 +191,7 @@ public class ImageSectionPanel extends JPanel {
         });
 
         zoomOut.addActionListener(e -> {
-            zoom = Math.max(zoom / 1.25, 0.25);
+            zoom = Math.max(zoom / 1.25, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
             updatePreview();
         });
 
@@ -234,6 +239,10 @@ public class ImageSectionPanel extends JPanel {
         if (currentImage == null) return;
         int w = (int) (currentImage.getWidth() * zoom);
         int h = (int) (currentImage.getHeight() * zoom);
+        if (w > 8000 || h > 8000) {
+            JOptionPane.showMessageDialog(this, "⚠ Image too large to preview. Try zooming out.");
+            return;
+        }
         Image scaled = currentImage.getScaledInstance(w, h, Image.SCALE_SMOOTH);
         previewLabel.setIcon(new ImageIcon(scaled));
         previewLabel.setText(null);
