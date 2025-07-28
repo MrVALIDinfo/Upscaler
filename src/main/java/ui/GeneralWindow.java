@@ -4,68 +4,59 @@ import com.formdev.flatlaf.FlatDarkLaf;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 public class GeneralWindow extends JFrame {
 
-    private ImageSectionPanel imagePanel;
+    private final CardLayout cardLayout = new CardLayout();
+    private final JPanel contentPanel = new JPanel(cardLayout);
 
     public GeneralWindow() {
         try {
             UIManager.setLookAndFeel(new FlatDarkLaf());
         } catch (Exception ignored) {}
 
-        setTitle("Upscaler");
-        setPreferredSize(new Dimension(1200, 850));
-        setMinimumSize(new Dimension(1100, 750));
+        setTitle("🧠 Upscaler Pro");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(1280, 800);
         setLocationRelativeTo(null);
-        setResizable(true);
         setLayout(new BorderLayout());
+        setResizable(true);
 
-        NavigationPanel sidebar = new NavigationPanel();
-        sidebar.setPreferredSize(new Dimension(220, getHeight()));
-        sidebar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // ===== Top Navigation Tabs ===== //
+        JPanel topNav = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        topNav.setBackground(new Color(25, 27, 35));
 
-        JPanel contentPanel = new JPanel(new CardLayout());
+        String[] tabs = { "Image Upscaler", "Video Upscaler", "Settings" };
+        for (String tab : tabs) {
+            JButton button = new JButton(tab);
+            button.setFocusPainted(false);
+            button.setForeground(Color.WHITE);
+            button.setBackground(new Color(40, 44, 52));
+            button.setFont(new Font("SansSerif", Font.BOLD, 14));
+            button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            button.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+            button.putClientProperty("JButton.buttonType", "roundRect");
+
+            button.addActionListener(e -> {
+                String key = tab.toLowerCase().replace(" ", "");
+                cardLayout.show(contentPanel, key);
+            });
+
+            topNav.add(button);
+        }
+
+        add(topNav, BorderLayout.NORTH);
+
+        // ===== Content Area ===== //
         contentPanel.setBackground(new Color(32, 34, 37));
         contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        imagePanel = new ImageSectionPanel();
-        VideoSectionPanel videoPanel = new VideoSectionPanel();
-        SettingsSectionPanel settingsPanel = new SettingsSectionPanel();
+        contentPanel.add(new ImageSectionPanel(), "imageupscaler");
+        contentPanel.add(new VideoSectionPanel(), "videoupscaler");
+        contentPanel.add(new SettingsSectionPanel(), "settings");
 
-        contentPanel.add(imagePanel, "images");
-        contentPanel.add(videoPanel, "videos");
-        contentPanel.add(settingsPanel, "settings");
-
-        sidebar.setNavigationListener(section -> {
-            CardLayout cl = (CardLayout) contentPanel.getLayout();
-            cl.show(contentPanel, section);
-        });
-
-        add(sidebar, BorderLayout.WEST);
         add(contentPanel, BorderLayout.CENTER);
 
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                if (imagePanel != null) {
-                    imagePanel.cleanupOnExit();
-                }
-            }
-        });
-
-        pack();
         setVisible(true);
-    }
-
-    public void lockWindow() {
-        setEnabled(false);
-    }
-
-    public void unlockWindow() {
-        setEnabled(true);
     }
 }

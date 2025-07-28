@@ -5,9 +5,7 @@ import java.util.function.Consumer;
 
 public class VideoUpscaler {
 
-    public static void upscaleVideo(String inputVideoPath, String outputVideoPath, String modelName, Consumer<Integer> progressCallback)
-            throws IOException, InterruptedException {
-
+    public static void upscaleFromVideoFile(String inputVideoPath, String outputVideoPath, String modelName) throws IOException, InterruptedException {
         String os = System.getProperty("os.name").toLowerCase();
         String executablePath;
 
@@ -30,16 +28,17 @@ public class VideoUpscaler {
         framesDir.mkdirs();
         upscaledDir.mkdirs();
 
-        // 1. 🎬 Extract frames
+        // 1. 🎬 Extract frames using ffmpeg
         ProcessBuilder extractTask = new ProcessBuilder(
                 "ffmpeg", "-i", inputVideoPath,
                 new File(framesDir, "frame_%05d.png").getAbsolutePath()
         );
         extractTask.inheritIO();
         Process extract = extractTask.start();
-        extract.waitFor();
+        int extractCode = extract.waitFor();
+        if (extractCode != 0) throw new RuntimeException("Frame extraction failed!");
 
-        // 2. 🧠 Upscale each frame
+        // 2. 🧠 Upscale each frame via .exe
         File[] frames = framesDir.listFiles((dir, name) -> name.endsWith(".png"));
         if (frames == null || frames.length == 0)
             throw new IOException("No frames extracted");
@@ -55,43 +54,36 @@ public class VideoUpscaler {
                     "-o", output.getAbsolutePath(),
                     "-n", modelName
             );
-            upscaleTask.directory(new File(workingDir));
+            upscaleTask.directory(execFile.getParentFile());
             upscaleTask.redirectErrorStream(true);
-            Process upscale = upscaleTask.start();
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(upscale.getInputStream()))) {
+            Process p = upscaleTask.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println("[Upscale] " + line);
+                    System.out.println("[RENDER] " + line);
                 }
             }
 
-            int exit = upscale.waitFor();
-            if (exit != 0) {
-                throw new RuntimeException("Failed upscale: " + frame.getName());
-            }
+            int exitCode = p.waitFor();
+            if (exitCode != 0) throw new RuntimeException("Upscale failed for: " + frame.getName());
 
             processed++;
-            int percent = (int) ((processed / (double) total) * 100);
-            progressCallback.accept(percent);
+            int percent = (int)((processed / (double)total) * 100);
+            System.out.println("Progress: " + percent + "%");
         }
 
-        // 3. 🎞️ Combine back
-        ProcessBuilder combine = new ProcessBuilder(
+        // 3. 🎞️ Combine into video
+        ProcessBuilder combineTask = new ProcessBuilder(
                 "ffmpeg", "-framerate", "24", "-i",
                 new File(upscaledDir, "frame_%05d.png").getAbsolutePath(),
-                "-c:v", "libx264",
-                "-pix_fmt", "yuv420p",
+                "-c:v", "libx264", "-pix_fmt", "yuv420p",
                 "-y",
                 outputVideoPath
         );
-        combine.inheritIO();
-        Process p3 = combine.start();
-        p3.waitFor();
-
-        // 4. 🧹 Optional: Clean up frames (если хочешь)
-        // for (File f : framesDir.listFiles()) f.delete();
-        // for (File f : upscaledDir.listFiles()) f.delete();
+        combineTask.inheritIO();
+        Process combine = combineTask.start();
+        int combCode = combine.waitFor();
+        if (combCode != 0) throw new IOException("Failed to recombine frames.");
     }
 }
