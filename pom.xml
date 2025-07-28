@@ -36,12 +36,6 @@
             <version>3.4</version>
         </dependency>
 
-        <!-- JCodec (для получения кадров из видео, если без FFmpeg) -->
-        <dependency>
-            <groupId>org.jcodec</groupId>
-            <artifactId>jcodec</artifactId>
-            <version>0.2.5</version>
-        </dependency>
 
         <!-- Apache Commons IO (работа с файлами, путями, временные файлы и т.п.) -->
         <dependency>
