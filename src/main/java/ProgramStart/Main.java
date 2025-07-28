@@ -9,7 +9,6 @@ import javax.swing.*;
 public class Main {
     public static void main(String[] args) {
         try {
-            // Устанавливаем FlatLaf (если нужен тёмный стиль)
             UIManager.setLookAndFeel(new FlatDarkLaf());
         } catch (Exception e) {
             System.err.println("Не удалось установить FlatDarkLaf: " + e.getMessage());

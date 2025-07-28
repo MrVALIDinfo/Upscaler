@@ -2,6 +2,7 @@
 package ui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +17,7 @@ public class GeneralWindow extends JFrame {
             UIManager.setLookAndFeel(new FlatDarkLaf());
         } catch (Exception ignored) {}
 
+        FlatIntelliJLaf.setup();
         setTitle("🧠 Upscaler Pro");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1280, 800);
