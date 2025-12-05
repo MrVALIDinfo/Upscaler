@@ -34,10 +34,9 @@ public class GeneralWindow extends JFrame {
     private static final Color TEXT_MUTED = COLOR_TEXT_MUTED;
 
     public GeneralWindow() {
-        // FlatLaf тёмная тема
         FlatDarkLaf.setup();
 
-        setTitle("Upscayl Cloud");
+        setTitle("Upscaler");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1280, 800);
         setLocationRelativeTo(null);
@@ -45,24 +44,16 @@ public class GeneralWindow extends JFrame {
         setResizable(true);
         getContentPane().setBackground(COLOR_BG_MAIN);
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // App Bar (top navigation) - ~80px height
-        // ─────────────────────────────────────────────────────────────────────────
         JPanel topBar = createAppBar();
         add(topBar, BorderLayout.NORTH);
 
-        // ─────────────────────────────────────────────────────────────────────────
-        // Main content wrapper with padding
-        // ─────────────────────────────────────────────────────────────────────────
         JPanel mainWrapper = new JPanel(new BorderLayout());
         mainWrapper.setBackground(COLOR_BG_MAIN);
         mainWrapper.setBorder(BorderFactory.createEmptyBorder(0, 24, 24, 24));
 
-        // Tabs row
         JPanel tabsRow = createTabsRow();
         mainWrapper.add(tabsRow, BorderLayout.NORTH);
 
-        // Основной контент
         contentPanel.setBackground(COLOR_BG_MAIN);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
@@ -76,7 +67,7 @@ public class GeneralWindow extends JFrame {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // App Bar Creation
+    // App Bar
     // ═══════════════════════════════════════════════════════════════════════════
     private JPanel createAppBar() {
         JPanel topBar = new JPanel(new BorderLayout());
@@ -84,36 +75,33 @@ public class GeneralWindow extends JFrame {
         topBar.setPreferredSize(new Dimension(0, 80));
         topBar.setBorder(BorderFactory.createEmptyBorder(0, 24, 0, 24));
 
-        // ─── Left: Logo + Title ───
+        // ─── Left: logo + title ───
         JPanel brandPanel = new JPanel();
         brandPanel.setOpaque(false);
         brandPanel.setLayout(new BoxLayout(brandPanel, BoxLayout.X_AXIS));
 
-        // Logo placeholder
         JPanel logoPanel = createLogoPanel();
         brandPanel.add(logoPanel);
         brandPanel.add(Box.createHorizontalStrut(12));
 
-        JLabel title = new JLabel("Upscayl Cloud");
+        JLabel title = new JLabel("Upscaler");
         title.setFont(new Font("SansSerif", Font.BOLD, 20));
         title.setForeground(COLOR_TEXT_PRIMARY);
         brandPanel.add(title);
 
-        // Wrap to center vertically
         JPanel leftWrapper = new JPanel(new GridBagLayout());
         leftWrapper.setOpaque(false);
         leftWrapper.add(brandPanel);
         topBar.add(leftWrapper, BorderLayout.WEST);
 
-        // ─── Center: Search bar placeholder ───
+        // ─── Center: search bar placeholder ───
         JPanel centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setOpaque(false);
-
         JPanel searchBar = createSearchBarPlaceholder();
         centerPanel.add(searchBar);
         topBar.add(centerPanel, BorderLayout.CENTER);
 
-        // ─── Right: Avatar + Version ───
+        // ─── Right: hint + avatar ───
         JPanel rightPanel = new JPanel(new GridBagLayout());
         rightPanel.setOpaque(false);
 
@@ -136,18 +124,73 @@ public class GeneralWindow extends JFrame {
         return topBar;
     }
 
+    /**
+     * Логотип слева от текста "Upscaler".
+     * logo.png масштабируется ПРОПОРЦИОНАЛЬНО под max 48x48,
+     * без вытягивания, и центрируется в квадратной панели.
+     */
     private JPanel createLogoPanel() {
+        final int MAX_SIZE = 135;
+
+        ImageIcon icon = null;
+        try {
+            java.net.URL url = GeneralWindow.class.getResource("/ui/logo.png");
+            if (url != null) {
+                icon = new ImageIcon(url);
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (icon != null && icon.getIconWidth() > 0 && icon.getIconHeight() > 0) {
+            int imgW = icon.getIconWidth();
+            int imgH = icon.getIconHeight();
+
+            double scale = Math.min(
+                    (double) MAX_SIZE / imgW,
+                    (double) MAX_SIZE / imgH
+            );
+
+            int newW = (int) Math.round(imgW * scale);
+            int newH = (int) Math.round(imgH * scale);
+
+            Image scaled = icon.getImage().getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+            ImageIcon scaledIcon = new ImageIcon(scaled);
+
+            JLabel logoLabel = new JLabel(scaledIcon);
+            logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            logoLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+            JPanel logoPanel = new JPanel(new BorderLayout()) {
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(MAX_SIZE, MAX_SIZE);
+                }
+
+                @Override
+                public Dimension getMinimumSize() {
+                    return getPreferredSize();
+                }
+
+                @Override
+                public Dimension getMaximumSize() {
+                    return getPreferredSize();
+                }
+            };
+            logoPanel.setOpaque(false);
+            logoPanel.add(logoLabel, BorderLayout.CENTER);
+            return logoPanel;
+        }
+
+        // Fallback: старый градиентный квадрат с буквой U
         JPanel logo = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Gradient logo background
                 g2.setPaint(new GradientPaint(0, 0, new Color(99, 102, 241),
                         40, 40, new Color(168, 85, 247)));
                 g2.fillRoundRect(0, 0, 40, 40, 12, 12);
-                // Icon text
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("SansSerif", Font.BOLD, 18));
                 FontMetrics fm = g2.getFontMetrics();
@@ -160,7 +203,7 @@ public class GeneralWindow extends JFrame {
 
             @Override
             public Dimension getPreferredSize() {
-                return new Dimension(40, 40);
+                return new Dimension(70, 70);
             }
 
             @Override
@@ -235,14 +278,13 @@ public class GeneralWindow extends JFrame {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Tabs Row Creation
+    // Tabs Row
     // ═══════════════════════════════════════════════════════════════════════════
     private JPanel createTabsRow() {
         JPanel tabsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         tabsRow.setOpaque(false);
         tabsRow.setBorder(BorderFactory.createEmptyBorder(16, 0, 16, 0));
 
-        // Tab container (pill shape background)
         JPanel tabContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -269,12 +311,10 @@ public class GeneralWindow extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                // Draw background
+
                 g2.setColor(getBackground());
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
-                
-                // Draw text
+
                 g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setFont(getFont());
                 g2.setColor(getForeground());
