@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.concurrent.ExecutionException;
 
 public class ImageSectionPanel extends JPanel {
 
@@ -108,14 +109,26 @@ public class ImageSectionPanel extends JPanel {
                     protected Void doInBackground() throws Exception {
                         File in = input;
                         File out = output;
-                        for (int i = 0; i < getRepeatCount(scaleMultiplier); i++) {
-                            ImageUpscaler.upscaleImage(in.getAbsolutePath(), out.getAbsolutePath(), modelBox.getSelectedItem().toString());
-                            if (i < getRepeatCount(scaleMultiplier) - 1) {
+
+                        int repeats = getRepeatCount(scaleMultiplier);
+                        System.out.println("[UI] Target scale: x" + scaleMultiplier +
+                                ", repeats: " + repeats);
+
+                        for (int i = 0; i < repeats; i++) {
+                            System.out.println("[UI] Upscale round " + (i + 1) + "/" + repeats);
+                            ImageUpscaler.upscaleImage(
+                                    in.getAbsolutePath(),
+                                    out.getAbsolutePath(),
+                                    modelBox.getSelectedItem().toString()
+                            );
+
+                            if (i < repeats - 1) {
                                 in = out;
                                 out = File.createTempFile("image_upscale_round_" + i, ".png");
                                 out.deleteOnExit();
                             }
                         }
+
                         currentImage = ImageIO.read(out);
                         return null;
                     }
@@ -123,20 +136,47 @@ public class ImageSectionPanel extends JPanel {
                     @Override
                     protected void done() {
                         try {
-                            zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
-                            updatePreview();
+                            // ВЫТАСКИВАЕМ возможную ошибку из doInBackground()
+                            get();
+
+                            if (currentImage != null) {
+                                zoom = getInitialZoom(currentImage.getWidth(), currentImage.getHeight());
+                                updatePreview();
+                            }
+
                             progressBar.setIndeterminate(false);
                             progressBar.setString("Finished");
                             saveImageBtn.setEnabled(true);
-                        } catch (Exception ex) {
-                            JOptionPane.showMessageDialog(ImageSectionPanel.this, "❌ Failed: " + ex.getMessage());
+
+                        } catch (ExecutionException ex) {
+                            Throwable cause = ex.getCause();
+                            if (cause != null) {
+                                cause.printStackTrace();
+                            } else {
+                                ex.printStackTrace();
+                            }
+
+                            progressBar.setIndeterminate(false);
+                            progressBar.setString("Failed");
+
+                            JOptionPane.showMessageDialog(
+                                    ImageSectionPanel.this,
+                                    "❌ Upscale failed:\n" +
+                                            (cause != null ? cause.getMessage() : ex.getMessage()),
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE
+                            );
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                            progressBar.setIndeterminate(false);
+                            progressBar.setString("Interrupted");
                         }
                     }
                 }.execute();
 
             } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "⚠ Error during processing.");
+                JOptionPane.showMessageDialog(this, "⚠ Error during processing:\n" + ex.getMessage());
             }
         });
         leftPanel.add(upscaleBtn);
@@ -191,8 +231,10 @@ public class ImageSectionPanel extends JPanel {
         });
 
         zoomOut.addActionListener(e -> {
-            zoom = Math.max(zoom / 1.25, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
-            updatePreview();
+            if (currentImage != null) {
+                zoom = Math.max(zoom / 1.25, getInitialZoom(currentImage.getWidth(), currentImage.getHeight()));
+                updatePreview();
+            }
         });
 
         zoomPanel.add(zoomOut);

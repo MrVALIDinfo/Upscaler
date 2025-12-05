@@ -1,6 +1,10 @@
 package ImageScaler;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class ImageUpscaler {
 
@@ -18,33 +22,52 @@ public class ImageUpscaler {
             throws IOException, InterruptedException {
 
         String os = System.getProperty("os.name").toLowerCase();
+        System.out.println("[RealESRGAN] Detected OS: " + os);
+
         String executablePath;
 
         if (os.contains("win")) {
+            // Windows: используем .exe
             executablePath = "src/main/java/Models/AI/REALESRGAN/realesrgan-ncnn-vulkan.exe";
-        } else if (os.contains("mac")) {
+        } else if (os.contains("mac") || os.contains("linux") || os.contains("nux") || os.contains("nix")) {
+            // macOS и Linux: бинарник без расширения
             executablePath = "src/main/java/Models/AI/REALESRGAN/realesrgan-ncnn-vulkan";
         } else {
             throw new UnsupportedOperationException("Unsupported OS: " + os);
         }
 
         File execFile = new File(executablePath);
-        if (!execFile.exists()) throw new FileNotFoundException("Binary not found: " + execFile);
-        if (!execFile.canExecute()) execFile.setExecutable(true);
+        System.out.println("[RealESRGAN] Using binary: " + execFile.getAbsolutePath());
+
+        if (!execFile.exists()) {
+            throw new FileNotFoundException("Binary not found: " + execFile.getAbsolutePath());
+        }
+
+        if (!execFile.canExecute()) {
+            boolean ok = execFile.setExecutable(true);
+            System.out.println("[RealESRGAN] setExecutable(true) -> " + ok);
+        }
 
         ProcessBuilder builder = new ProcessBuilder(
                 execFile.getAbsolutePath(),
                 "-i", inputImagePath,
                 "-o", outputImagePath,
                 "-n", modelName
+                // Для x4 моделей scale по умолчанию 4x, параметр -s не обязателен
         );
 
-        builder.directory(new File("src/main/java/Models/AI/REALESRGAN"));
+        // Рабочая директория — там где лежит бинарник и папка models
+        builder.directory(execFile.getParentFile());
         builder.redirectErrorStream(true);
+
+        System.out.println("[RealESRGAN] Working dir: " + builder.directory().getAbsolutePath());
+        System.out.println("[RealESRGAN] Command: " + String.join(" ", builder.command()));
 
         currentProcess = builder.start();
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(currentProcess.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(currentProcess.getInputStream()))) {
+
             String line;
             while ((line = reader.readLine()) != null) {
                 System.out.println("[RealESRGAN] " + line);
@@ -53,6 +76,8 @@ public class ImageUpscaler {
 
         int exitCode = currentProcess.waitFor();
         currentProcess = null;
+
+        System.out.println("[RealESRGAN] Exit code: " + exitCode);
 
         if (exitCode != 0) {
             throw new RuntimeException("RealESRGAN exited with code: " + exitCode);
