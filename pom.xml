@@ -6,7 +6,7 @@
 
     <groupId>faust.upscaler</groupId>
     <artifactId>upscaler</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>Upscaler</name>
     <description>Cross-platform desktop image upscaler powered by bundled Real-ESRGAN NCNN Vulkan binaries.</description>
 

@@ -16,7 +16,7 @@ import upscaler.ui.MainFrame;
 import javax.swing.SwingUtilities;
 
 public final class UpscalerApplication {
-    public static final String APP_VERSION = "1.0.0";
+    public static final String APP_VERSION = "1.0.1";
 
     private UpscalerApplication() {
     }
