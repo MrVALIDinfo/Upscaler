@@ -158,7 +158,7 @@ public class MainFrame extends JFrame {
 
         workspacePanel.setPreviewImages(null, null);
         workspacePanel.setSaveEnabled(false);
-        workspacePanel.setPipelineText(ScalePlanner.plan(settings.getScaleFactor()).describe());
+        workspacePanel.setPipelineText(buildSelectedImageScalePlan(settings.getScaleFactor()).describe());
         videoWorkspacePanel.setPlanText(buildVideoPlanText());
         detailsLabel.setText(buildDetailsText());
 
@@ -313,7 +313,7 @@ public class MainFrame extends JFrame {
             Integer scale = (Integer) workspacePanel.getScaleCombo().getSelectedItem();
             if (scale != null) {
                 settings.setScaleFactor(scale);
-                workspacePanel.setPipelineText(ScalePlanner.plan(scale).describe());
+                workspacePanel.setPipelineText(buildSelectedImageScalePlan(scale).describe());
                 persistSettingsQuietly();
             }
         });
@@ -325,6 +325,10 @@ public class MainFrame extends JFrame {
             ModelDefinition selected = (ModelDefinition) workspacePanel.getModelCombo().getSelectedItem();
             if (selected != null) {
                 settings.setSelectedModel(selected.name());
+                Integer scale = (Integer) workspacePanel.getScaleCombo().getSelectedItem();
+                if (scale != null) {
+                    workspacePanel.setPipelineText(ScalePlanner.plan(selected, scale).describe());
+                }
                 persistSettingsQuietly();
             }
         });
@@ -338,6 +342,7 @@ public class MainFrame extends JFrame {
 
         videoWorkspacePanel.getModelCombo().addActionListener(e -> {
             if (!syncingUi) {
+                videoWorkspacePanel.setPlanText(buildVideoPlanText());
                 persistSettingsQuietly();
             }
         });
@@ -466,7 +471,13 @@ public class MainFrame extends JFrame {
             }
         }
         refreshToolingSummary();
+        workspacePanel.setPipelineText(buildSelectedImageScalePlan(settings.getScaleFactor()).describe());
         detailsLabel.setText(buildDetailsText());
+    }
+
+    private ScalePlan buildSelectedImageScalePlan(int targetScale) {
+        ModelDefinition selected = (ModelDefinition) workspacePanel.getModelCombo().getSelectedItem();
+        return ScalePlanner.plan(selected, targetScale);
     }
 
     private void refreshDevicesAsync() {
@@ -592,7 +603,7 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        ScalePlan scalePlan = ScalePlanner.plan(targetScale);
+        ScalePlan scalePlan = ScalePlanner.plan(model, targetScale);
         workspacePanel.setPipelineText(scalePlan.describe());
         UpscaleRequest request = new UpscaleRequest(
                 currentInputFile,
@@ -645,7 +656,13 @@ public class MainFrame extends JFrame {
                             String message = parts[2];
                             workspacePanel.setStatusText(message);
                             statusLabel.setText(message);
-                            workspacePanel.setProgressValue(Math.round(((activeImagePass - 1) * 100f) / Math.max(1, totalImagePasses)));
+                            int statusProgress = Math.round(((activeImagePass - 1) * 100f) / Math.max(1, totalImagePasses));
+                            if (message.startsWith("Post-resizing")) {
+                                statusProgress = 96;
+                            } else if ("Upscale complete".equals(message)) {
+                                statusProgress = 100;
+                            }
+                            workspacePanel.setProgressValue(statusProgress);
                         }
                     } else if (chunk.matches("\\d+(\\.\\d+)?%")) {
                         double passPercent = Double.parseDouble(chunk.replace("%", ""));
@@ -816,7 +833,7 @@ public class MainFrame extends JFrame {
         settings.setVideoEncoderId(encoder.id());
         persistSettingsQuietly();
 
-        ScalePlan scalePlan = scale <= 1 ? new ScalePlan(1, List.of()) : ScalePlanner.plan(scale);
+        ScalePlan scalePlan = scale <= 1 ? ScalePlanner.plan(1, model.nativeScale()) : ScalePlanner.plan(model, scale);
         VideoUpscaleRequest request = new VideoUpscaleRequest(
                 currentVideoFile,
                 currentVideoOutputFile,
@@ -1125,6 +1142,10 @@ public class MainFrame extends JFrame {
         builder.append("Detection summary: ").append(result.summary()).append(System.lineSeparator()).append(System.lineSeparator());
         builder.append("Image scales: x2, x3, x4, x6, x8").append(System.lineSeparator());
         builder.append("Video scales: 1x, x2, x3, x4, x6, x8").append(System.lineSeparator());
+        builder.append("Safe outscale mode: bundled x4 models render at native 4x and exact output scale is produced via final resize.")
+                .append(System.lineSeparator());
+        builder.append("This avoids direct NCNN x2/x3 model calls that can create tile-like block artifacts on some systems.")
+                .append(System.lineSeparator());
         builder.append("Video FPS targets: Original, 60, 120, 240").append(System.lineSeparator());
         builder.append(videoToolingService.buildEnvironmentSummary()).append(System.lineSeparator());
         builder.append("Current platform: ").append(PlatformDetector.detect().resourceFolder()).append(System.lineSeparator());
@@ -1179,12 +1200,14 @@ public class MainFrame extends JFrame {
         if (preset == null) {
             preset = resolveVideoPreset(settings.getVideoQualityPreset());
         }
+        ModelDefinition model = (ModelDefinition) videoWorkspacePanel.getModelCombo().getSelectedItem();
+        ScalePlan scalePlan = scale <= 1 ? ScalePlanner.plan(1, model == null ? 4 : model.nativeScale()) : ScalePlanner.plan(model, scale);
         VideoEncoderOption encoder = (VideoEncoderOption) settingsPanel.getVideoEncoderCombo().getSelectedItem();
         if (encoder == null && settingsPanel.getVideoEncoderCombo().getItemCount() > 0) {
             encoder = settingsPanel.getVideoEncoderCombo().getItemAt(0);
         }
 
-        String scaleText = scale <= 1 ? "keep source resolution" : (scale + "x frame upscale");
+        String scaleText = scale <= 1 ? "keep source resolution" : scalePlan.describe();
         String fpsText;
         if (fpsOption.value() <= 0) {
             fpsText = "keep source fps";

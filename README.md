@@ -9,6 +9,7 @@ Upscaler wraps bundled `Real-ESRGAN NCNN Vulkan` runtimes for image restoration 
 - dark matte glassmorphism desktop UI
 - exact image scales: `2x`, `3x`, `4x`, `6x`, `8x`
 - video scales: `1x`, `2x`, `3x`, `4x`, `6x`, `8x`
+- safe arbitrary output scale path for bundled x4 models: native `4x` inference plus final exact resize
 - target video FPS: `Original`, `60`, `120`, `240`
 - GPU / chip selection for the Real-ESRGAN runtime
 - video encoder selection from locally available FFmpeg encoders
@@ -23,16 +24,16 @@ Upscaler wraps bundled `Real-ESRGAN NCNN Vulkan` runtimes for image restoration 
 
 The project is published through GitHub Releases.
 
-Expected release assets for `v1.0.0`:
+Expected release assets for `v1.0.1`:
 
-- `upscaler-1.0.0.jar`
-- `upscaler-1.0.0-windows-x64.exe`
-- `upscaler-1.0.0-windows-x64.zip`
-- `upscaler-1.0.0-macos.dmg`
-- `upscaler-1.0.0-macos.zip`
-- `upscaler-1.0.0-linux-x64.tar.gz`
-- `upscaler-1.0.0*.deb`
-- `upscaler-1.0.0-linux-arch-x64.tar.gz`
+- `upscaler-1.0.1.jar`
+- `Upscaler-1.0.1.exe`
+- `upscaler-1.0.1-windows-x64.zip`
+- `Upscaler-1.0.1.dmg`
+- `upscaler-1.0.1-macos.zip`
+- `upscaler-1.0.1-linux-x64.tar.gz`
+- `upscaler-1.0.1*.deb`
+- `upscaler-1.0.1-linux-arch-x64.tar.gz`
 - `PKGBUILD`
 
 Open the repository Releases tab:
@@ -49,7 +50,7 @@ Open the repository Releases tab:
 
 Portable option:
 
-1. Download `upscaler-1.0.0-windows-x64.zip`.
+1. Download `upscaler-1.0.1-windows-x64.zip`.
 2. Extract it.
 3. Run `Upscaler.exe`.
 
@@ -61,7 +62,7 @@ Portable option:
 
 Portable option:
 
-1. Download `upscaler-1.0.0-macos.zip`.
+1. Download `upscaler-1.0.1-macos.zip`.
 2. Extract it.
 3. Open `Upscaler.app`.
 
@@ -71,7 +72,7 @@ Portable option:
 2. Install it:
 
 ```bash
-sudo apt install ./upscaler-1.0.0*.deb
+sudo apt install ./upscaler-1.0.1*.deb
 ```
 
 ### Arch Linux
@@ -79,13 +80,13 @@ sudo apt install ./upscaler-1.0.0*.deb
 Portable option:
 
 ```bash
-tar -xzf upscaler-1.0.0-linux-arch-x64.tar.gz
+tar -xzf upscaler-1.0.1-linux-arch-x64.tar.gz
 ./Upscaler/bin/Upscaler
 ```
 
 Packaging option:
 
-1. Download `PKGBUILD` and `upscaler-1.0.0-linux-arch-x64.tar.gz`.
+1. Download `PKGBUILD` and `upscaler-1.0.1-linux-arch-x64.tar.gz`.
 2. Put them into one directory.
 3. Build and install:
 
@@ -96,7 +97,7 @@ makepkg -si
 ### Generic Linux
 
 ```bash
-tar -xzf upscaler-1.0.0-linux-x64.tar.gz
+tar -xzf upscaler-1.0.1-linux-x64.tar.gz
 ./Upscaler/bin/Upscaler
 ```
 
@@ -169,6 +170,13 @@ Device detection uses this order:
 
 The selected device is used for image inference and for frame upscaling in video jobs.
 
+## Upscale quality notes
+
+- bundled general and anime models are native `4x` NCNN models
+- for `2x` and `3x`, Upscaler now uses a safe `4x` inference pass and then resizes to the exact requested output
+- this avoids the broken direct `-s 2` / `-s 3` path that can create tile-like block artifacts on some systems
+- for `6x` and `8x`, the app follows the same exact-output strategy instead of forcing unstable NCNN scale modes
+
 ## Build from source
 
 ### Maven Wrapper
@@ -176,7 +184,7 @@ The selected device is used for image inference and for frame upscaling in video
 ```bash
 ./mvnw test
 ./mvnw package
-java -jar target/upscaler-1.0.0.jar
+java -jar target/upscaler-1.0.1.jar
 ```
 
 ### Native packaging
@@ -210,9 +218,9 @@ The repository contains:
 Publishing a release:
 
 ```bash
-git tag v1.0.0
+git tag v1.0.1
 git push origin main
-git push origin v1.0.0
+git push origin v1.0.1
 ```
 
 The release workflow uploads native assets into GitHub Releases automatically.
