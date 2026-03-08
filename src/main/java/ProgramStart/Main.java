@@ -1,19 +1,12 @@
-// ProgramStart/Main.java
 package ProgramStart;
 
-import ui.GeneralWindow;
-import com.formdev.flatlaf.FlatDarkLaf;
+import upscaler.app.UpscalerApplication;
 
-import javax.swing.*;
+public final class Main {
+    private Main() {
+    }
 
-public class Main {
     public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(new FlatDarkLaf());
-        } catch (Exception e) {
-            System.err.println("Не удалось установить FlatDarkLaf: " + e.getMessage());
-        }
-
-        SwingUtilities.invokeLater(GeneralWindow::new);
+        UpscalerApplication.launch(args);
     }
 }
