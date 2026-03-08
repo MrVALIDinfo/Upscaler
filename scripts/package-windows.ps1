@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $RootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $RootDir
 
-$Version = if ($args.Count -gt 0) { $args[0] } else { (& .\mvnw.cmd -q -DforceStdout help:evaluate -Dexpression=project.version).Trim() }
+$Version = if ($args.Count -gt 0) { $args[0] } else { ([xml](Get-Content "$RootDir/pom.xml")).project.version.Trim() }
 $JarName = "upscaler-$Version.jar"
 $DistDir = Join-Path $RootDir "dist/windows"
 $InputDir = Join-Path $DistDir "input"
