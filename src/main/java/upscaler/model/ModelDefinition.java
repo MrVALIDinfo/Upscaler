@@ -4,7 +4,8 @@ public record ModelDefinition(
         String name,
         String displayName,
         String description,
-        ModelSource source
+        ModelSource source,
+        int nativeScale
 ) {
     @Override
     public String toString() {

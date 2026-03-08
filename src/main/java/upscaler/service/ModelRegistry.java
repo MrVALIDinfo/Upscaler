@@ -21,13 +21,15 @@ public class ModelRegistry {
                     "realesrgan-x4plus",
                     "Real-ESRGAN General",
                     "Balanced model for photos, textures, scans and general image restoration.",
-                    ModelSource.BUNDLED
+                    ModelSource.BUNDLED,
+                    4
             ),
             new ModelDefinition(
                     "realesrgan-x4plus-anime",
                     "Real-ESRGAN Anime",
                     "Sharper, more stylized reconstruction tuned for anime and illustration.",
-                    ModelSource.BUNDLED
+                    ModelSource.BUNDLED,
+                    4
             )
     );
 
@@ -69,7 +71,8 @@ public class ModelRegistry {
                                     name,
                                     buildDisplayName(name),
                                     "Custom NCNN model loaded from your Upscaler models folder.",
-                                    ModelSource.USER
+                                    ModelSource.USER,
+                                    detectNativeScale(name)
                             ));
                         }
                     });
@@ -102,5 +105,16 @@ public class ModelRegistry {
             }
         }
         return builder + " (Custom)";
+    }
+
+    private int detectNativeScale(String name) {
+        String normalized = name.toLowerCase(Locale.ROOT);
+        if (normalized.contains("x2")) {
+            return 2;
+        }
+        if (normalized.contains("x3")) {
+            return 3;
+        }
+        return 4;
     }
 }

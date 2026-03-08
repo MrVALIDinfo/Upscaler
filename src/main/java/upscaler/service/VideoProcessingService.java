@@ -209,20 +209,33 @@ public class VideoProcessingService {
     }
 
     private String buildVideoFilter(VideoMetadata metadata, VideoUpscaleRequest request) {
+        List<String> filters = new ArrayList<>();
+        if (request.scaleFactor() > 1 && request.scalePlan().requiresPostResize()) {
+            filters.add(buildScaleFilter(request.scalePlan().postResizeFactor()));
+        }
+
         int targetFps = request.targetFrameRate();
         if (targetFps <= 0) {
-            return "";
+            return String.join(",", filters);
         }
         if (metadata.frameRate() <= 0) {
-            return "fps=" + targetFps;
+            filters.add("fps=" + targetFps);
+            return String.join(",", filters);
         }
         if (targetFps > metadata.frameRate()) {
-            return "minterpolate=fps=" + targetFps + ":mi_mode=mci:mc_mode=aobmc:vsbmc=1";
+            filters.add("minterpolate=fps=" + targetFps + ":mi_mode=mci:mc_mode=aobmc:vsbmc=1");
+        } else if (targetFps < metadata.frameRate()) {
+            filters.add("fps=" + targetFps);
         }
-        if (targetFps < metadata.frameRate()) {
-            return "fps=" + targetFps;
-        }
-        return "";
+        return String.join(",", filters);
+    }
+
+    private String buildScaleFilter(double ratio) {
+        return "scale=iw*" + formatRatio(ratio) + ":ih*" + formatRatio(ratio) + ":flags=lanczos";
+    }
+
+    private String formatRatio(double value) {
+        return String.format(Locale.US, "%.6f", value);
     }
 
     private void runFfmpeg(

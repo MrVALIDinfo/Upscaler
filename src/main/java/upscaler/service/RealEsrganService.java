@@ -47,6 +47,10 @@ public class RealEsrganService {
         List<String> history = new ArrayList<>();
 
         try {
+            BufferedImage originalImage = ImageIO.read(request.inputFile().toFile());
+            if (originalImage == null) {
+                throw new IOException("The source image is unreadable.");
+            }
             Path currentInput = workspace.resolve("input-0.png");
             Files.copy(request.inputFile(), currentInput, StandardCopyOption.REPLACE_EXISTING);
 
@@ -65,8 +69,18 @@ public class RealEsrganService {
             if (image == null) {
                 throw new IOException("Real-ESRGAN finished but produced an unreadable image.");
             }
+            Path outputPath = currentInput;
+            if (request.scalePlan().requiresPostResize()) {
+                int targetWidth = Math.max(1, originalImage.getWidth() * request.scalePlan().targetScale());
+                int targetHeight = Math.max(1, originalImage.getHeight() * request.scalePlan().targetScale());
+                listener.onStatus("Post-resizing to exact x" + request.scalePlan().targetScale(), passes.size(), passes.size());
+                image = ImageResizer.resize(image, targetWidth, targetHeight);
+                outputPath = workspace.resolve("output-final.png");
+                ImageIO.write(image, "png", outputPath.toFile());
+                history.add("$ internal-resize " + targetWidth + "x" + targetHeight);
+            }
             listener.onStatus("Upscale complete", passes.size(), passes.size());
-            return new UpscaleResult(currentInput, image, List.copyOf(history));
+            return new UpscaleResult(outputPath, image, List.copyOf(history));
         } finally {
             currentProcess.set(null);
         }
